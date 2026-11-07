@@ -1,0 +1,13 @@
+{
+  "name": "Vole",
+  "identifier": "dev.vole.app",
+  "version": "0.1.0",
+  "icon": "resources/icon.png",
+  "out": "build",
+  "resources": [
+    "build/stage/analyze",
+    "build/stage/status",
+    "THIRD_PARTY_NOTICES.md",
+    "licenses"
+  ]
+}
