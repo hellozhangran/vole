@@ -1,0 +1,16 @@
+{
+  "scan_status": "partial",
+  "path": "/Users/test",
+  "overview": false,
+  "entries": [
+    {"scan_status": "partial", "name": "Library", "path": "/Users/test/Library", "size": 5000, "is_dir": true},
+    {"scan_status": "complete", "name": ".yarn", "path": "/Users/test/.yarn", "size": 0, "is_dir": true, "cleanable": true},
+    {"scan_status": "complete", "name": "a.tar.gz", "path": "/Users/test/a.tar.gz", "size": 300, "is_dir": false, "last_access": "2025-06-30T10:36:08Z"},
+    {"scan_status": "weird", "name": "x", "path": "/Users/test/x", "size": 1, "is_dir": false, "last_access": "not-a-time"}
+  ],
+  "large_files": [
+    {"name": "big.raw", "path": "/Users/test/Library/big.raw", "size": 4000}
+  ],
+  "total_size": 5301,
+  "total_files": 42
+}

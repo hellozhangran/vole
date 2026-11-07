@@ -1,0 +1,11 @@
+{
+  "scan_status": "partial",
+  "path": "/",
+  "overview": true,
+  "entries": [
+    {"scan_status": "partial", "name": "Home", "path": "/Users/test", "size": 1000, "is_dir": true},
+    {"scan_status": "complete", "name": "uv Cache", "path": "/Users/test/.cache/uv", "size": 400, "is_dir": true, "insight": true, "cleanable": true},
+    {"scan_status": "unavailable", "name": "User Library", "path": "/Users/test/Library", "size": 0, "is_dir": true}
+  ],
+  "total_size": 1400
+}
