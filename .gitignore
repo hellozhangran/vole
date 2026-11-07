@@ -1,0 +1,13 @@
+# 本机私有目录：全貌、调研、方案、参考源码、开发过程数据，均不对外
+.local/
+
+# 构建产物
+/bin/
+/build/
+/dist/
+/.mygo/
+*.app
+
+# 依赖与缓存
+node_modules/
+.DS_Store
