@@ -115,7 +115,10 @@ func (s *Shell) View(c *ui.Context) {
 	ui.Column(c).Fill().TextColor(t.Text).FontSize(kit.TextBody).
 		LinearGradient(ui.LinearGradient{From: t.BgTop, To: t.BgBottom, Angle: 180, End: 0.7, Oklab: true}).
 		Children(func() {
-			s.topBar(c, t)
+			// 模块要求整页显示时（如清理的结果页）不画顶栏，整个窗口交给模块
+			if fp, ok := m.(module.FullPage); !ok || !fp.FullPage() {
+				s.topBar(c, t)
+			}
 			// 每个模块用自己的 key，切 tab 时各自的控件状态（滚动位置等）互不干扰
 			ui.Box(c.Key("module-" + m.ID())).Grow(1).FillWidth().MinHeight(0).Children(func() { m.View(c) })
 		})

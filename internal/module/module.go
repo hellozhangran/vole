@@ -15,6 +15,12 @@ type Host interface {
 	Tasks() *task.Runner
 }
 
+// FullPage 是模块可选实现的接口：返回 true 时外壳不画顶部 tab 条，整个窗口交给模块
+// （模块自己给左上角红绿灯留位置，并提供拖动窗口的区域）。
+type FullPage interface {
+	FullPage() bool
+}
+
 // Module 是一个顶部 tab 的功能模块。除 Init 外的方法都在主线程调用。
 type Module interface {
 	ID() string         // 稳定标识："clean" | "apps" | "optimize" | "analyze" | "status"
