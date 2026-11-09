@@ -39,6 +39,9 @@ Vole.app 内的 `Contents/Resources/analyze` 和 `Contents/Resources/status` 分
 | `internal/core/clean/rules.go` | `lib/clean/user.sh`、`lib/clean/app_caches.sh`、`lib/clean/dev.sh`（每条规则的注释里写了对应行号，含 Codex 过期更新包 clean_codex_desktop_staging、Chrome DevTools MCP、编辑器过时扩展等） | 参考规则语义，用 Go 数据重写 |
 | `internal/core/clean/uv.go` | `lib/clean/dev.sh`（clean_uv_cache） | 参考调用方式；`uv cache prune` 的估算和占用进程描述是 Vole 自写 |
 
+| `internal/core/fsops/`（`trash.go`、`oplog.go`、`path.go`、`protect_data.go`、`identity.go`、`force.go`） | 同上（`cmd/analyze/delete.go`、`cmd/analyze/oplog.go`、`lib/core/file_ops.sh`、`lib/core/app_protection_data.sh` SYSTEM_CRITICAL_BUNDLES） | 从 `internal/core/clean` 搬出来给清理和卸载共用，内容不变 |
+| `internal/core/apps/`（卸载） | `bin/uninstall.sh`（app 清单）、`lib/uninstall/batch.sh`（执行顺序、共享数据判断）、`lib/uninstall/review.sh`（分类）、`lib/uninstall/brew.sh`、`lib/uninstall/steam.sh`、`lib/core/app_protection.sh`（find_app_files 等）、`lib/core/app_protection_data.sh`（APPLE_UNINSTALLABLE_APPS、OFFICIAL_UNINSTALLER_RULES） | 参考规则语义，用 Go 重写，只做用户级；文件头和函数注释写了对应行号。Electron 包名、签名里的 App Group、内嵌 app 名、明确点目录这几条补充规则是 Vole 自写 |
+
 以下是 Vole 自己写的，不含 Mole 代码：`internal/core/clean/force.go`（只读目录加写权限再删）、`env.go`、`size.go`、清理界面 `internal/features/clean`（只参照 Mole app 截图的布局，没有用 Mole app 的代码和素材）。
 
 ## Vole 自有素材

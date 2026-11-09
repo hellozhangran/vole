@@ -28,6 +28,7 @@ const usage = `用法：
   vole-cli analyze [--json] [--timeout 5m] [--limit 30] [PATH]   无 PATH = overview
   vole-cli status [--frames 3] [--interval 1s] [--json]           打几帧实时系统状态就退出
   vole-cli clean scan | run --dry-run|--yes ...                  清理：只读扫描 / 按指定类别或项清理（详见 vole-cli clean）
+  vole-cli apps list | show <app> | remove --dry-run|--yes <app>...  软件：已装 app、关联文件、卸载（详见 vole-cli apps）
   vole-cli doctor                                                二进制定位 + 环境探测
 
 开发期用 VOLE_ANALYZE_BIN / VOLE_STATUS_BIN 指定二进制（scripts/build-mole.sh analyze|status 编译）。`
@@ -53,6 +54,8 @@ func run(args []string) error {
 		return runAnalyze(args[1:])
 	case "status":
 		return runStatus(args[1:])
+	case "apps":
+		return runApps(args[1:])
 	case "clean":
 		return runClean(args[1:])
 	case "doctor":
