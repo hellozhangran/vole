@@ -17,9 +17,7 @@ import (
 	"vole/internal/features/analyze"
 	"vole/internal/features/apps"
 	"vole/internal/features/clean"
-	"vole/internal/features/soon"
 	"vole/internal/features/status"
-	"vole/internal/kit"
 	"vole/internal/module"
 	"vole/internal/shell"
 )
@@ -41,7 +39,7 @@ func Run() error {
 	modules := []module.Module{
 		clean.New(clean.NewBackend()),
 		apps.New(apps.NewBackend()),
-		soon.New("optimize", "优化", kit.Teal()),
+		// 「优化」发版前不做，先隐藏（作者 2026-11-10 决定）；调研与设计见 .local plan 3.11
 		analyze.New(src, env),
 		status.New(statusSource(), procs.PS{}),
 	}
