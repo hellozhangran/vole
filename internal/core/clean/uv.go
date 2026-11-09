@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 )
 
 // uvPrunable 估算 `uv cache prune` 能清掉多少（只读）。
@@ -203,3 +204,26 @@ func uvCommand(args string) (kind, dir string) {
 
 var uvSubcommands = map[string]bool{"run": true, "sync": true, "pip": true, "tool": true, "add": true, "remove": true,
 	"lock": true, "venv": true, "build": true, "publish": true, "python": true, "cache": true, "export": true, "tree": true}
+
+// pipPurgeable 估算 `pip cache purge` 能清掉多少（只读）：http、http-v2 下的全部文件 + wheels 下的 .whl。
+// 目录本身、selfcheck 等它不删，不算进去。
+func pipPurgeable(ctx context.Context, root string) (int64, bool) {
+	var total int64
+	for _, sub := range []string{"http", "http-v2", "wheels"} {
+		_ = filepath.WalkDir(filepath.Join(root, sub), func(p string, d fs.DirEntry, err error) error {
+			if err != nil || ctx.Err() != nil {
+				return ctx.Err()
+			}
+			if !d.Type().IsRegular() || sub == "wheels" && !strings.HasSuffix(p, ".whl") {
+				return nil
+			}
+			if info, err := d.Info(); err == nil {
+				if st, ok := info.Sys().(*syscall.Stat_t); ok {
+					total += st.Blocks * 512 // 口径同 du
+				}
+			}
+			return nil
+		})
+	}
+	return total, ctx.Err() == nil
+}

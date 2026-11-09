@@ -13,34 +13,11 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"vole/internal/core/fsops"
 )
 
-// criticalPath 报告绝对路径是否是绝不能删的系统关键路径（含家目录本身）。
-func criticalPath(p, home string) bool {
-	if strings.HasPrefix(p, "/usr/local/") || strings.HasPrefix(p, "/opt/homebrew/") {
-		return false
-	}
-	switch p {
-	case "/", "/bin", "/dev", "/sbin", "/usr", "/System", "/Library", "/Library/Apple", "/Library/Application Support",
-		"/Library/Extensions", "/Library/Keychains", "/Applications", "/Volumes", "/opt", "/opt/homebrew",
-		"/Users", "/Users/Shared", "/Users/Guest", "/private", "/private/tmp", "/etc", "/private/etc",
-		"/var", "/var/db", "/var/audit", "/var/root", "/private/var", "/private/var/tmp", "/private/var/folders",
-		"/private/var/db", "/private/var/audit", "/private/var/root", "/Network", "/cores", "/home", "/net", "/tmp":
-		return true
-	}
-	for _, root := range []string{"/bin/", "/dev/", "/sbin/", "/usr/", "/System/", "/Library/Apple/", "/Library/Extensions/",
-		"/Library/Keychains/", "/Applications/Finder.app", "/Applications/Safari.app", "/Users/Guest/", "/etc/",
-		"/private/etc/", "/var/db/", "/var/audit/", "/private/var/db/", "/private/var/audit/"} {
-		if strings.HasPrefix(p, root) {
-			return true
-		}
-	}
-	// /Users/<名字> 本身（任何用户的家目录）
-	if strings.HasPrefix(p, "/Users/") && !strings.Contains(strings.TrimPrefix(p, "/Users/"), "/") {
-		return true
-	}
-	return home != "" && p == home
-}
+func criticalPath(p, home string) bool { return fsops.CriticalPath(p, home) }
 
 // protectedName 报告一个文件或目录名（通常是 bundle id）对应的数据是否受保护，对应 Mole 的 should_protect_data。
 func protectedName(name string) bool {
@@ -71,7 +48,7 @@ func protectedName(name string) bool {
 			return true
 		}
 	}
-	for _, g := range systemCriticalBundles {
+	for _, g := range fsops.SystemCriticalBundles {
 		if ok, _ := path.Match(g, name); ok {
 			return true
 		}

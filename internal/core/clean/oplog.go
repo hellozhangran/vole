@@ -6,75 +6,20 @@ package clean
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"vole/internal/core/fsops"
 )
 
-// opLog 是清理的操作日志。写失败不影响删除，但会记下第一次失败给调用方提示。
-type opLog struct {
-	path    string
-	session string
-	mu      sync.Mutex
-	err     error
-}
+// 日志的写入搬到了 core/fsops（卸载也写同一个文件），这里保留清理用到的名字。
 
-const opLogMax = 5 << 20
+func newOpLog(env *Env) *fsops.OpLog { return fsops.NewOpLog(env.LogDir, env.Now()) }
 
-func newOpLog(env *Env) *opLog {
-	return &opLog{path: filepath.Join(env.LogDir, "operations.log"), session: env.Now().Format("20060102-150405")}
-}
-
-// line 写一行：时间  会话  动作  结果  大小KB  规则  路径  原因
-func (l *opLog) line(now time.Time, action, status string, sizeKB int64, rule, path, reason string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	fields := []string{now.Format(time.RFC3339), l.session, action, status, fmt.Sprint(sizeKB), rule,
-		escapeLogValue(path), escapeLogValue(reason)}
-	if err := appendRotating(l.path, strings.Join(fields, "\t")+"\n"); err != nil && l.err == nil {
-		l.err = err
-	}
-}
-
-func appendRotating(p, text string) error {
-	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
-		return err
-	}
-	if info, err := os.Stat(p); err == nil && info.Size()+int64(len(text)) > opLogMax {
-		_ = os.Rename(p, p+".1")
-	}
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.WriteString(text)
-	return err
-}
-
-// escapeLogValue 把控制字符写成 \n、\r、\t 或 \xHH，防止文件名伪造一条日志记录；反斜杠保持原样。
-func escapeLogValue(v string) string {
-	var b strings.Builder
-	for _, c := range []byte(v) {
-		switch {
-		case c == '\n':
-			b.WriteString(`\n`)
-		case c == '\r':
-			b.WriteString(`\r`)
-		case c == '\t':
-			b.WriteString(`\t`)
-		case c < 0x20 || c == 0x7f:
-			fmt.Fprintf(&b, `\x%02X`, c)
-		default:
-			b.WriteByte(c)
-		}
-	}
-	return b.String()
-}
+func escapeLogValue(v string) string { return fsops.EscapeLogValue(v) }
 
 // LastClean 从操作日志读出上次真正清理（不含 dry-run）的结束时间和释放字节数；没有记录时 ok 为 false。
 func LastClean(env *Env) (at time.Time, freed int64, ok bool) {

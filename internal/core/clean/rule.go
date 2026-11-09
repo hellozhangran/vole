@@ -14,6 +14,8 @@ package clean
 import (
 	"context"
 	"time"
+
+	"vole/internal/core/fsops"
 )
 
 // Target 决定一项删的是什么。
@@ -56,6 +58,8 @@ type Tool struct {
 	GuardOnlyByPath bool
 	// Busy：命令失败、且输出里含其中之一时，算「工具正在用这个缓存」，跳过而不是失败（原因用 Rule.GuardReason）
 	Busy []string
+	// Empty：命令失败、但输出里含其中之一时，是「没有可清理的内容」（如旧版 pip 的 No matching packages），算已清理、不报失败
+	Empty []string
 	// Estimate 估算工具命令实际能清掉多少（只读）；ok 为 false 时按整个目录的大小算
 	Estimate func(ctx context.Context, root string) (n int64, ok bool)
 }
@@ -112,11 +116,8 @@ type Candidate struct {
 	Note    string
 }
 
-// Identity 是扫描时记下的身份，删除前比对，防止路径在扫描后被换成别的东西。
-type Identity struct {
-	Dev, Ino uint64
-	Mode     uint32 // 文件类型位
-}
+// Identity 是扫描时记下的身份（定义在 core/fsops）。
+type Identity = fsops.Identity
 
 // Item 是扫描结果里的一项，也是删除清单里的一项。
 type Item struct {

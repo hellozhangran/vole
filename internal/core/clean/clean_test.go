@@ -14,6 +14,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"vole/internal/core/fsops"
 )
 
 // 所有测试都在临时目录里造一个假的家目录；Env 的每一项都指向它或假实现，绝不碰本机真实目录。
@@ -430,9 +432,9 @@ func TestPartialFailureContinues(t *testing.T) {
 	if err := os.Chmod(locked, 0o555); err != nil {
 		t.Fatal(err)
 	}
-	old := currentUID
-	currentUID = func() int { return os.Getuid() + 1 }
-	t.Cleanup(func() { currentUID = old; _ = os.Chmod(locked, 0o755) })
+	old := fsops.CurrentUID
+	fsops.CurrentUID = func() int { return os.Getuid() + 1 }
+	t.Cleanup(func() { fsops.CurrentUID = old; _ = os.Chmod(locked, 0o755) })
 
 	res := scanAll(t, f)
 	items := []Item{mustFind(t, res, "caches.apps:~/Library/Caches/com.foo.app"), mustFind(t, res, "logs.user:~/Library/Logs/app.log")}
@@ -1047,14 +1049,55 @@ func TestRemoveReadOnlyNotOwnedStays(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(d, "sub", "f"), []byte("x"), 0o644)
 	readOnlyTree(t, root, "other/sub")
 	// 模拟属主不是当前用户
-	old := currentUID
-	currentUID = func() int { return os.Getuid() + 1 }
-	t.Cleanup(func() { currentUID = old })
+	old := fsops.CurrentUID
+	fsops.CurrentUID = func() int { return os.Getuid() + 1 }
+	t.Cleanup(func() { fsops.CurrentUID = old })
 	err := removeAllWritable(d)
 	if !errors.Is(err, fs.ErrPermission) || reasonOf(err) != "没有权限" {
 		t.Fatalf("别人的目录应照样报没有权限：%v", err)
 	}
 	if info, _ := os.Stat(filepath.Join(d, "sub")); info.Mode().Perm() != 0o555 {
 		t.Fatal("别人的目录不该被改权限")
+	}
+}
+
+func TestPipPurgeEstimateAndEmptyCache(t *testing.T) {
+	f := newFakeEnv(t)
+	f.file(t, "Library/Caches/pip/selfcheck/abc.json", 20_000) // purge 不删：不算
+	f.tools["pip3"] = "/usr/bin/pip3"
+	out := ""
+	f.runFn = func(name string, args []string) ([]byte, error) {
+		switch strings.Join(args, " ") {
+		case "cache dir":
+			return []byte(filepath.Join(f.Home, "Library/Caches/pip") + "\n"), nil
+		case "cache purge":
+			if out != "" {
+				return nil, errors.New(out)
+			}
+			return nil, nil
+		}
+		return nil, errors.New("unexpected")
+	}
+	// 只剩 selfcheck：purge 清不掉，不列
+	if _, ok := find(scanAll(t, f), "dev.pip:~/Library/Caches/pip"); ok {
+		t.Fatal("只剩 purge 不删的东西时不该列出 pip")
+	}
+	// 有下载缓存和本地编译的 wheel：只算这些
+	f.file(t, "Library/Caches/pip/http-v2/a/b/c.body", 100_000)
+	f.file(t, "Library/Caches/pip/wheels/x/y/foo-1.0-py3-none-any.whl", 50_000)
+	f.file(t, "Library/Caches/pip/wheels/x/y/origin.json", 1_000) // 不是 .whl：不算
+	it := mustFind(t, scanAll(t, f), "dev.pip:~/Library/Caches/pip")
+	if it.Size < 150_000 || it.Size > 170_000 {
+		t.Fatalf("大小应只算 purge 能清的：%d", it.Size)
+	}
+	// 旧版 pip 没东西可删：返回 1、ERROR: No matching packages → 算已清理
+	out = "exit status 1：ERROR: No matching packages"
+	if o := Run(context.Background(), f.Env, []Item{it}, RunOptions{}).Outcomes[0]; o.Status != StatusDone || o.Reason != "没有可清理的内容" {
+		t.Fatalf("%+v", o)
+	}
+	// 其他错误照样报失败
+	out = "exit status 2：ERROR: Permission denied"
+	if o := Run(context.Background(), f.Env, []Item{it}, RunOptions{}).Outcomes[0]; o.Status != StatusFailed {
+		t.Fatalf("%+v", o)
 	}
 }

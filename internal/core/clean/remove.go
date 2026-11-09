@@ -63,14 +63,14 @@ func Run(ctx context.Context, env *Env, items []Item, opts RunOptions) *RunRepor
 	if opts.DryRun {
 		action = "dry-run"
 	}
-	log.line(env.Now(), action, "开始", 0, "", "", fmt.Sprintf("%d 项", len(items)))
+	log.Line(env.Now(), action, "开始", 0, "", "", fmt.Sprintf("%d 项", len(items)))
 	eligible := map[string]map[string]Candidate{}
 	for i, it := range items {
 		if ctx.Err() != nil {
 			for _, rest := range items[i:] {
 				o := Outcome{Item: rest, Status: StatusCanceled, Reason: "用户取消"}
 				rep.Outcomes = append(rep.Outcomes, o)
-				log.line(env.Now(), action, string(o.Status), rest.Size/1024, rest.RuleID, rest.Path, o.Reason)
+				log.Line(env.Now(), action, string(o.Status), rest.Size/1024, rest.RuleID, rest.Path, o.Reason)
 			}
 			rep.Canceled = true
 			break
@@ -78,13 +78,13 @@ func Run(ctx context.Context, env *Env, items []Item, opts RunOptions) *RunRepor
 		o := runOne(ctx, env, it, opts.DryRun, eligible)
 		rep.Outcomes = append(rep.Outcomes, o)
 		rep.Freed += o.Freed
-		log.line(env.Now(), action, string(o.Status), it.Size/1024, it.RuleID, it.Path, o.Reason)
+		log.Line(env.Now(), action, string(o.Status), it.Size/1024, it.RuleID, it.Path, o.Reason)
 		if opts.Progress != nil {
 			opts.Progress(i+1, len(items), o)
 		}
 	}
-	log.line(env.Now(), action, "结束", rep.Freed/1024, "", "", fmt.Sprintf("释放 %d KB", rep.Freed/1024))
-	rep.LogErr = log.err
+	log.Line(env.Now(), action, "结束", rep.Freed/1024, "", "", fmt.Sprintf("释放 %d KB", rep.Freed/1024))
+	rep.LogErr = log.Err()
 	return rep
 }
 
@@ -256,6 +256,13 @@ func runTool(ctx context.Context, env *Env, rule *Rule, it Item) Outcome {
 		}
 	}
 	freed := max(it.Size-after, 0)
+	if err != nil && rule.Tool != nil {
+		for _, e := range rule.Tool.Empty {
+			if strings.Contains(err.Error(), e) {
+				return Outcome{Item: it, Status: StatusDone, Reason: "没有可清理的内容", Freed: freed}
+			}
+		}
+	}
 	if err != nil && rule.Tool != nil && rule.GuardReason != "" {
 		for _, b := range rule.Tool.Busy {
 			if strings.Contains(err.Error(), b) {

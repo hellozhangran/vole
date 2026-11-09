@@ -7,8 +7,8 @@ package clean
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
-	"unicode"
+
+	"vole/internal/core/fsops"
 )
 
 // validatePath 校验一个要删除的路径。返回的错误是给用户看的原因。
@@ -18,28 +18,8 @@ import (
 //   - 不在保护名单和白名单里。checkName 为 true 时还检查名字本身（真正被删的那一层都要查）；
 //     「删内容、留目录」的根目录名字可以受保护（如 ~/Library/Caches/com.apple.dt.Xcode），它的子项逐个再查。
 func validatePath(p string, env *Env, checkName bool) error {
-	if p == "" || !filepath.IsAbs(p) {
-		return fmt.Errorf("不是绝对路径")
-	}
-	if p != filepath.Clean(p) {
-		return fmt.Errorf("路径不规范")
-	}
-	if strings.ContainsFunc(p, unicode.IsControl) {
-		return fmt.Errorf("路径含控制字符")
-	}
-	if !strings.HasPrefix(p, env.Home+"/") {
-		return fmt.Errorf("不在家目录下")
-	}
-	if criticalPath(p, env.Home) {
-		return fmt.Errorf("系统关键路径")
-	}
-	parent := filepath.Dir(p)
-	real, err := filepath.EvalSymlinks(parent)
-	if err != nil {
-		return fmt.Errorf("无法确认上级目录：%v", err)
-	}
-	if real != parent {
-		return fmt.Errorf("上级目录经过符号链接（实际指向 %s）", real)
+	if err := fsops.CheckPath(p, env.Home); err != nil {
+		return err
 	}
 	if protectedPath(p, env.Home) || (checkName && protectedName(filepath.Base(p))) {
 		return fmt.Errorf("在保护名单里")

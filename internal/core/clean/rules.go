@@ -107,8 +107,12 @@ func devRules() []Rule {
 		{ID: "dev.bun", Title: "Bun 缓存", Paths: []string{"~/.bun/install/cache"}, Guard: []string{"bun", "bunx"}, Default: true,
 			Tool: &Tool{Bin: "bun", Args: []string{"pm", "cache", "rm"}, RootArgs: []string{"pm", "cache"}}, Note: redownload},
 		// dev.sh:946 clean_dev_python
+		// pip cache purge 只删 http / http-v2 下的下载缓存和 wheels 下本地编译的 wheel 文件，selfcheck（版本检查记录）和目录本身不删，
+		// 所以大小按这些文件算（估算为 0 就不列）；旧版 pip（如 Xcode 自带的 21.x）没东西可删时会报
+		// 「ERROR: No matching packages」并返回 1，算已清理（新版只给 WARNING、返回 0）。
 		{ID: "dev.pip", Title: "pip 缓存", Paths: []string{"~/Library/Caches/pip"}, Default: true,
-			Tool: &Tool{Bin: "pip3", Args: []string{"cache", "purge"}, RootArgs: []string{"cache", "dir"}}, Note: redownload},
+			Tool: &Tool{Bin: "pip3", Args: []string{"cache", "purge"}, RootArgs: []string{"cache", "dir"},
+				Empty: []string{"No matching packages"}, Estimate: pipPurgeable}, Note: redownload},
 		// dev.sh:1218 clean_dev_go（GOCACHE）
 		{ID: "dev.gobuild", Title: "Go 编译缓存", Paths: []string{"~/Library/Caches/go-build"}, Default: true,
 			Tool: &Tool{Bin: "go", Args: []string{"clean", "-cache"}, RootArgs: []string{"env", "GOCACHE"}},
