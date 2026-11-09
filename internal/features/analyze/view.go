@@ -37,12 +37,12 @@ func (m *Module) View(c *ui.Context) {
 func (m *Module) sidebar(c *ui.Context, t kit.Theme, v viewState) {
 	ui.Column(c.Key("sidebar")).Width(sidebarWidth).Shrink(0).FillHeight().Children(func() {
 		ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(12).Padding(14, 0, 18, 0).Children(func() {
-			// 扫描中换成奔跑的田鼠，扫完回到静止的星球（都不再请求重绘）
+			// 扫描中是奔跑的田鼠，扫完换成拿放大镜的静止插画（不再请求重绘）
 			ui.Box(c).Size(kit.Hero, kit.Hero).Center().Children(func() {
 				if v.anyRunning() {
 					kit.RunningVole(c, kit.Hero, kit.RunningFPS, true)
 				} else {
-					kit.Planet(c, kit.Hero, t.Planet, false)
+					kit.Art(c, kit.ArtAnalyzeIdle, kit.Hero)
 				}
 			})
 			ui.Text(c, summary(v)).Font(kit.Mono).FontSize(kit.TextBody).TextColor(t.Muted).SingleLine()
@@ -262,7 +262,7 @@ func (m *Module) body(c *ui.Context, t kit.Theme, v viewState) {
 	ui.Column(c.Key("body-" + m.current())).Grow(1).FillWidth().MinHeight(0).Children(func() {
 		if err := m.brokenErr(); err != nil {
 			detail := strings.TrimPrefix(strings.TrimPrefix(err.Error(), core.ErrScannerUnavailable.Error()), "：")
-			m.message(c, t, "分析组件不可用", strings.TrimSpace(detail)+"。Vole.app 可能不完整或已损坏，请重新安装；开发期请检查 VOLE_ANALYZE_BIN。", true)
+			m.message(c, t, kit.ArtError, "分析组件不可用", strings.TrimSpace(detail)+"。Vole.app 可能不完整或已损坏，请重新安装；开发期请检查 VOLE_ANALYZE_BIN。", true)
 			return
 		}
 		switch {
@@ -271,7 +271,7 @@ func (m *Module) body(c *ui.Context, t kit.Theme, v viewState) {
 			m.loading(c, t, fmt.Sprintf("正在扫描 %d 个目录", v.pending), "每个目录扫完就会出现在这里；Users 目录第一次可能要几分钟")
 		case v.root:
 			if len(v.items) == 0 {
-				m.message(c, t, "没有可扫描的目录", "", false)
+				m.message(c, t, kit.ArtAnalyzeIdle, "没有可扫描的目录", "", false)
 				return
 			}
 			m.treemap(c, t, v)
@@ -280,13 +280,16 @@ func (m *Module) body(c *ui.Context, t kit.Theme, v viewState) {
 				m.largeFiles(c, t, v.report)
 			} else if hasSize(v.items) {
 				m.treemap(c, t, v)
+			} else if v.report.Status != core.StatusComplete && m.env.FullDiskAccess == sysenv.AccessDenied {
+				// 读不到内容、又没有完全磁盘访问：多半是权限挡住了，不说「空的」
+				m.fdaMessage(c, t)
 			} else {
-				m.message(c, t, "这个目录是空的", "", false)
+				m.message(c, t, kit.ArtAnalyzeIdle, "这个目录是空的", "", false)
 			}
 		case v.job != nil && v.job.state == jobFailed:
-			m.message(c, t, "扫描失败", v.job.err.Error(), true)
+			m.message(c, t, kit.ArtError, "扫描失败", v.job.err.Error(), true)
 		case v.job != nil && v.job.state == jobCanceled:
-			m.message(c, t, "已取消扫描", "", true)
+			m.message(c, t, "", "已取消扫描", "", true)
 		default:
 			m.loading(c, t, "正在扫描 "+m.displayName(m.current()), "扫完才会返回结果，大目录第一次可能要几分钟；扫过的子目录会快很多")
 		}
@@ -303,8 +306,12 @@ func hasSize(items []item) bool {
 }
 
 // message 是主区居中的一段提示，可带「重新扫描」按钮。
-func (m *Module) message(c *ui.Context, t kit.Theme, title, detail string, retry bool) {
+// art 为空时不放插画。
+func (m *Module) message(c *ui.Context, t kit.Theme, art kit.ArtName, title, detail string, retry bool) {
 	ui.Column(c).Fill().Center().Gap(10).Padding(0, 40, 80, 40).Children(func() {
+		if art != "" {
+			kit.Art(c, art, kit.ArtS).Margin(0, 0, 4, 0)
+		}
 		ui.Text(c, title).FontSize(kit.TextHeadline).TextAlign(ui.Center)
 		if detail != "" {
 			ui.Text(c, detail).FontSize(kit.TextSecondary).TextColor(t.Muted).TextAlign(ui.Center).MaxWidth(460)
@@ -312,6 +319,20 @@ func (m *Module) message(c *ui.Context, t kit.Theme, title, detail string, retry
 		if retry {
 			kit.PillButton(c.Key("retry"), t, "重新扫描", true).Margin(10, 0, 0, 0).OnClick(m.refresh)
 		}
+	})
+}
+
+// fdaMessage：目录读不到、且没有完全磁盘访问时的空状态，给「去设置」。
+func (m *Module) fdaMessage(c *ui.Context, t kit.Theme) {
+	ui.Column(c).Fill().Center().Gap(10).Padding(0, 40, 80, 40).Children(func() {
+		kit.Art(c, kit.ArtError, kit.ArtS).Margin(0, 0, 4, 0)
+		ui.Text(c, "需要完全磁盘访问").FontSize(kit.TextHeadline).TextAlign(ui.Center)
+		ui.Text(c, "这个目录受系统保护，Vole 没有权限读取。到「系统设置 › 隐私与安全性 › 完全磁盘访问」里打开 Vole 后重新扫描。").
+			FontSize(kit.TextSecondary).TextColor(t.Muted).TextAlign(ui.Center).MaxWidth(460)
+		ui.Row(c).Gap(10).Margin(10, 0, 0, 0).Children(func() {
+			kit.PillButton(c.Key("fda-settings"), t, "去设置", true).OnClick(m.openSettings)
+			kit.PillButton(c.Key("retry"), t, "重新扫描", false).OnClick(m.refresh)
+		})
 	})
 }
 

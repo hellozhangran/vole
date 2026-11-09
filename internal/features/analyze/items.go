@@ -88,7 +88,7 @@ func sortItems(items []item) {
 	})
 }
 
-// anyRunning 当前是否有计算中的项（决定是否每秒刷新已用时、星球是否自转）。
+// anyRunning 当前是否有计算中的项（决定是否每秒刷新已用时、侧栏是奔跑田鼠还是静止插画）。
 func (v viewState) anyRunning() bool {
 	if v.root {
 		return v.pending > 0

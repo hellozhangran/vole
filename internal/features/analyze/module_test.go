@@ -189,7 +189,7 @@ func TestRootScansWithConcurrencyLimit(t *testing.T) {
 	if h.m.jobs[pLib].state != jobQueued || h.m.jobs[pBrew].state != jobQueued {
 		t.Fatalf("超过并发上限：%+v %+v", h.m.jobs[pLib], h.m.jobs[pBrew])
 	}
-	h.tt.Advance(2 * time.Second) // 离屏是 CPU 渲染自转星球，别推太久
+	h.tt.Advance(2 * time.Second) // 推进 2 秒，看「已用」计时
 	h.want("当前 0 B + 4 项计算中", "已用 2s", "排队中")
 	h.snapshot("01-root-scanning")
 
@@ -336,4 +336,33 @@ func TestScannerUnavailableShowsErrorState(t *testing.T) {
 	h.click("重新扫描")
 	h.settle(4)
 	h.want("分析组件不可用")
+}
+
+// TestArtScenes：扫完后侧栏是「拿放大镜」的静止插画；读不到又没有完全磁盘访问的目录给「需要完全磁盘访问」+ 去设置。
+func TestArtScenes(t *testing.T) {
+	h := newHarness(t)
+	h.src.reports[pHome+"/Library"] = core.Report{Path: pHome + "/Library", Status: core.StatusPartial} // 权限挡住：什么都没读到
+	opened := 0
+	h.m.openSettings = func() { opened++ }
+	h.m.OnActivate()
+	h.settle(4)
+	if h.m.jobs[pHome].state == jobRunning {
+		t.Fatal("应已扫完")
+	}
+	h.snapshot("analyze-idle")
+
+	h.click("条目 Users/test")
+	h.click("块 Library")
+	h.settle(1)
+	h.want("需要完全磁盘访问", "去设置", "重新扫描")
+	h.snapshot("error-fda")
+	h.click("去设置")
+	if opened != 1 {
+		t.Fatal("去设置应打开系统设置")
+	}
+
+	// 有权限时同样的结果是「空的」，不提示权限
+	h.m.env.FullDiskAccess = sysenv.AccessGranted
+	h.tt.Frame()
+	h.want("这个目录是空的")
 }

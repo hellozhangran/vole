@@ -14,6 +14,7 @@ import (
 
 	"vole/internal/core/procs"
 	core "vole/internal/core/status"
+	"vole/internal/kit"
 	"vole/internal/task"
 )
 
@@ -288,5 +289,33 @@ func TestHealthText(t *testing.T) {
 	}
 	if level, issues := healthText("Excellent"); level != "优秀" || issues != "没有发现问题" {
 		t.Fatalf("got %q %q", level, issues)
+	}
+}
+
+// TestHealthArt：健康度卡片按等级换插画；三档各截一张（设了 VOLE_SNAPSHOT_DIR 时）。
+func TestHealthArt(t *testing.T) {
+	for _, c := range []struct {
+		note  string
+		score int
+		want  kit.ArtName
+	}{
+		{"Excellent", 92, kit.ArtHealthGood}, {"Good: High CPU", 69, kit.ArtHealthGood},
+		{"Fair: High Memory", 50, kit.ArtHealthFair}, {"Needs Attention: Disk Almost Full", 30, kit.ArtHealthPoor},
+		{"", 70, kit.ArtHealthGood}, {"", 50, kit.ArtHealthFair}, {"", 10, kit.ArtHealthPoor}, {"", -1, kit.ArtHealthGood},
+	} {
+		if got := healthArt(c.note, c.score); got != c.want {
+			t.Fatalf("%q %d：%s", c.note, c.score, got)
+		}
+	}
+	for _, lv := range []struct {
+		name, note string
+		score      int
+	}{{"good", "Good: High CPU, Disk Almost Full", 69}, {"fair", "Fair: High Memory, Memory Pressure", 52}, {"poor", "Needs Attention: Overheating, Disk Almost Full", 31}} {
+		h := newHarness(t)
+		h.m.OnActivate()
+		s := fullFrame()
+		s.Health, s.HealthNote = lv.score, lv.note
+		h.push(step{snap: s}, 1)
+		h.snapshot("health-" + lv.name)
 	}
 }

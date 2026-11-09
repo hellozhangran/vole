@@ -68,6 +68,7 @@ func (m *Module) View(c *ui.Context) {
 func (m *Module) empty(c *ui.Context, t kit.Theme) {
 	ui.Column(c).Fill().Center().Gap(10).Padding(0, 40, 80, 40).Children(func() {
 		if m.err != nil {
+			kit.Art(c, kit.ArtError, kit.ArtS).Margin(0, 0, 4, 0)
 			ui.Text(c, "状态组件不可用").FontSize(kit.TextHeadline)
 			ui.Text(c, m.err.Error()+"。Vole.app 可能不完整或已损坏，请重新安装；开发期请检查 VOLE_STATUS_BIN。").
 				FontSize(kit.TextSecondary).TextColor(t.Muted).TextAlign(ui.Center).MaxWidth(460)
@@ -183,9 +184,9 @@ func (m *Module) healthCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 				boot := s.At.Add(-s.Uptime)
 				footer(c, t, "已运行 "+uptimeText(s.Uptime), "自 "+fmt.Sprintf("%d月%d日", boot.Month(), boot.Day()))
 			})
-			// 主视觉：Vole 自己的程序化星球（不用 Mole 的太阳）
+			// 主视觉：田鼠插画，按健康等级换表情（不用 Mole 的太阳）
 			ui.Box(c).FillHeight().Center().Shrink(0).Children(func() {
-				kit.Planet(c, 96, t.Planet, false)
+				kit.Art(c, healthArt(s.HealthNote, s.Health), kit.Hero)
 			})
 		})
 	})
@@ -342,6 +343,29 @@ var healthIssues = map[string]string{
 	"Critical Memory": "内存严重不足", "Disk Almost Full": "磁盘快满了", "Disk SMART Failing": "磁盘 SMART 异常",
 	"Overheating": "温度过高", "Heavy Disk IO": "磁盘读写繁重", "Battery Service Soon": "电池需要维修",
 	"Restart Recommended": "建议重启",
+}
+
+// healthArt 按健康等级选插画：优先用 status 给的等级词（Mole cmd/status/metrics_health.go:197 的
+// Excellent / Good / Fair / Needs Attention）；没有等级词时按同一处的分数阈值（85 / 65 / 45）判断。
+func healthArt(msg string, score int) kit.ArtName {
+	head, _, _ := strings.Cut(msg, ":")
+	switch strings.TrimSpace(head) {
+	case "Excellent", "Good":
+		return kit.ArtHealthGood
+	case "Fair":
+		return kit.ArtHealthFair
+	case "Needs Attention":
+		return kit.ArtHealthPoor
+	}
+	switch {
+	case score >= 65: // Good 及以上
+		return kit.ArtHealthGood
+	case score >= 45: // Fair
+		return kit.ArtHealthFair
+	case score >= 0:
+		return kit.ArtHealthPoor
+	}
+	return kit.ArtHealthGood // 还没有分数（首帧前）
 }
 
 func healthText(msg string) (level, issues string) {

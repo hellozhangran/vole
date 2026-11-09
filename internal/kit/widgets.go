@@ -40,3 +40,41 @@ func Segment(c *ui.Context, t Theme, text string, active bool) ui.Element {
 	b.Children(func() { ui.Text(c, text).SingleLine() })
 	return b
 }
+
+// CheckState 是三态勾选框的状态。
+type CheckState int
+
+const (
+	Unchecked CheckState = iota
+	Checked
+	Mixed // 部分选中
+)
+
+var (
+	checkMark = lineIcon(`<path d="m6 12.5 4 4 8-9"/>`)
+	mixedMark = lineIcon(`<path d="M7 12h10"/>`)
+)
+
+// Check 画一个三态勾选框（按钮），选中时用 accent 填色；disabled 时置灰、不能点。
+func Check(c *ui.Context, t Theme, label string, state CheckState, accent ui.Color, disabled bool) ui.Element {
+	b := ui.ButtonBase(c).Label(label).Size(CheckS, CheckS).Shrink(0).Radius(RadiusS - 1).Disabled(disabled)
+	switch {
+	case disabled:
+		b.Border(1, t.Faint).Opacity(0.5)
+	case state == Unchecked:
+		b.Border(1.5, t.Muted)
+		if b.Hovered() {
+			b.Background(t.Hover)
+		}
+	default:
+		b.Background(accent).TextColor(ui.Hex("#ffffff"))
+	}
+	b.Children(func() {
+		if state == Checked {
+			ui.Icon(c, checkMark).Size(CheckS-4, CheckS-4)
+		} else if state == Mixed {
+			ui.Icon(c, mixedMark).Size(CheckS-4, CheckS-4)
+		}
+	})
+	return b
+}
