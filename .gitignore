@@ -11,3 +11,4 @@
 # 依赖与缓存
 node_modules/
 .DS_Store
+/vole-cli
