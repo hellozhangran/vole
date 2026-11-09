@@ -47,7 +47,13 @@ func Ocean() Theme {
 	return t
 }
 
-// Violet 暗紫：软件 tab。
+// Wine 暗酒红：软件 tab（参照 Mole 截图 13）。
+func Wine() Theme {
+	t := base(ui.Hex("#3d1a1d"), ui.Hex("#18141a"))
+	return t
+}
+
+// Violet 暗紫：备用主题。
 func Violet() Theme {
 	t := base(ui.Hex("#2c1d4f"), ui.Hex("#16141f"))
 	return t

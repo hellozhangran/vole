@@ -15,6 +15,7 @@ import (
 	statusmole "vole/internal/core/status/mole"
 	"vole/internal/core/sysenv"
 	"vole/internal/features/analyze"
+	"vole/internal/features/apps"
 	"vole/internal/features/clean"
 	"vole/internal/features/soon"
 	"vole/internal/features/status"
@@ -39,7 +40,7 @@ func Run() error {
 	// 新增功能 = 在这里加一行
 	modules := []module.Module{
 		clean.New(clean.NewBackend()),
-		soon.New("apps", "软件", kit.Violet()),
+		apps.New(apps.NewBackend()),
 		soon.New("optimize", "优化", kit.Teal()),
 		analyze.New(src, env),
 		status.New(statusSource(), procs.PS{}),
