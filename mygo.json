@@ -8,6 +8,7 @@
     "build/stage/analyze",
     "build/stage/status",
     "THIRD_PARTY_NOTICES.md",
-    "licenses"
+    "licenses",
+    "LICENSE"
   ]
 }
