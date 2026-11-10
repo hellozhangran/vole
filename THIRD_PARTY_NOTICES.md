@@ -7,21 +7,21 @@ Vole 以 GNU General Public License v3.0 发布（全文见仓库根目录 `LICE
 Vole.app 内的 `Contents/Resources/analyze` 和 `Contents/Resources/status` 分别是从
 [tw93/Mole](https://github.com/tw93/Mole) 的 `cmd/analyze`、`cmd/status` **原样编译**得到的独立程序，
 **未做任何修改**。Vole 只以子进程方式调用它们（`analyze --json [路径]`、`status --watch --interval <间隔>`），
-不链接、不拷贝它们的源码。
+不链接它们的代码。
 
 - 上游项目：tw93/Mole
 - 源码地址：https://github.com/tw93/Mole
 - 对应版本：1.69.0
 - 对应 commit：6d1af75f5066b3f0fc1e8951235cda5e0841df78
-- 对应源码：
+- **对应源码随 Vole 仓库提供**：`third_party/mole/`（`cmd/analyze`、`cmd/status`、`internal/units`、`go.mod`、`go.sum`、`LICENSE`），
+  与上游该 commit 逐字节相同、未修改，来源说明见 `third_party/mole/VOLE_SOURCE.md`。上游对应目录：
   - https://github.com/tw93/Mole/tree/6d1af75f5066b3f0fc1e8951235cda5e0841df78/cmd/analyze
   - https://github.com/tw93/Mole/tree/6d1af75f5066b3f0fc1e8951235cda5e0841df78/cmd/status
-- 构建方式：在上述 commit 的源码根目录执行
-  `CGO_ENABLED=0 go build -ldflags="-s -w" -o analyze ./cmd/analyze`
-  `CGO_ENABLED=0 go build -ldflags="-s -w" -o status ./cmd/status`
-- 许可：GNU General Public License v3.0，全文见 `licenses/mole-GPL-3.0.txt`
+- 构建方式：`scripts/build-mole.sh analyze`、`scripts/build-mole.sh status`（在 `third_party/mole/` 里执行
+  `CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" ./cmd/<命令>`）；`scripts/package.sh` 打包时自动调用
+- 许可：GNU General Public License v3.0，全文见 `licenses/mole-GPL-3.0.txt`（与 `third_party/mole/LICENSE` 相同）
 
-依照 GPL-3，你可以从上面的源码地址获取这两个二进制的完整对应源码，并在 GPL-3 条款下复制、修改和再分发它们。
+依照 GPL-3，你可以从 `third_party/mole/` 或上面的源码地址获取这两个二进制的完整对应源码，并在 GPL-3 条款下复制、修改和再分发它们。
 
 ## Mole（移植的源码）
 

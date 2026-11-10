@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
-MOLE_SRC="$ROOT/.local/refs/mole"
+MOLE_SRC="$ROOT/third_party/mole"            # Mole 源码（原样复制，见 VOLE_SOURCE.md）
 STAGE="$ROOT/build/stage"           # 构建产物，/build/ 已在 .gitignore 里
 ARCH="${ARCH:-arm64}"
 
@@ -18,10 +18,12 @@ case "$ARCH" in
     *) echo "不支持的 ARCH=$ARCH（arm64 / amd64 / universal）" >&2; exit 1 ;;
 esac
 
-# 1. 许可证说明里的 commit 必须和实际编译的 Mole 源码一致（GPL-3：对应源码要指得准）
-COMMIT="$(git -C "$MOLE_SRC" rev-parse HEAD)"
+# 1. 许可证说明里的 commit 必须和实际编译的 Mole 源码一致（GPL-3：对应源码要指得准）：
+#    以 third_party/mole/VOLE_SOURCE.md 记录的 commit 为准
+COMMIT="$(sed -n 's/^| commit | \([0-9a-f]\{40\}\) |$/\1/p' "$MOLE_SRC/VOLE_SOURCE.md" | head -1)"
+[[ -n "$COMMIT" ]] || { echo "third_party/mole/VOLE_SOURCE.md 里没有读到 Mole commit" >&2; exit 1; }
 if ! grep -q "$COMMIT" THIRD_PARTY_NOTICES.md; then
-    echo "THIRD_PARTY_NOTICES.md 里的 Mole commit 不是当前 ${COMMIT}，先更新它" >&2
+    echo "THIRD_PARTY_NOTICES.md 里的 Mole commit 不是源码对应的 ${COMMIT}，先更新它" >&2
     exit 1
 fi
 cmp -s licenses/mole-GPL-3.0.txt "$MOLE_SRC/LICENSE" || { echo "licenses/mole-GPL-3.0.txt 与 Mole 的 LICENSE 不一致" >&2; exit 1; }
