@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	ui2 "vole/internal/features/statusui"
 
 	"github.com/egoist/mygo/ui"
 
@@ -55,9 +56,9 @@ func (m *Module) sortedProcs() []procs.Proc {
 
 // procTable 进程表：名称 / PID / CPU / 内存 / 操作，点表头排序。数据是 Vole 自己用 ps 采的 CPU 前 50。
 func (m *Module) procTable(c *ui.Context, t kit.Theme) {
-	ui.Column(c.Key("procs")).Grow(1).FillWidth().MinHeight(0).Radius(kit.RadiusL).Background(cardBG).Border(1, cardBorder).Clip().Children(func() {
+	ui.Column(c.Key("procs")).Grow(1).FillWidth().MinHeight(0).Radius(kit.RadiusL).Background(ui2.CardBG).Border(1, ui2.CardBorder).Clip().Children(func() {
 		ui.Row(c.Key("thead")).FillWidth().Height(32).Shrink(0).Padding(0, 16).Gap(8).
-			Border(1, cardBorder).BorderWidth(0, 0, 1, 0).Children(func() {
+			Border(1, ui2.CardBorder).BorderWidth(0, 0, 1, 0).Children(func() {
 			m.th(c, t, fmt.Sprintf("名称（%d）", len(m.pt.list)), byName, 0, false)
 			m.th(c, t, "PID", byPID, colPID, true)
 			m.th(c, t, "CPU", byCPU, colCPU, true)
@@ -67,7 +68,7 @@ func (m *Module) procTable(c *ui.Context, t kit.Theme) {
 		ui.Scroll(c.Key("tbody")).Grow(1).FillWidth().MinHeight(0).Children(func() {
 			ui.Column(c).FillWidth().Children(func() {
 				if len(m.pt.list) == 0 {
-					msg := waiting
+					msg := ui2.Waiting
 					if m.pt.err != nil {
 						msg = "读取进程列表失败：" + m.pt.err.Error()
 					}
@@ -124,7 +125,7 @@ func (m *Module) procRow(c *ui.Context, t kit.Theme, p procs.Proc) {
 	bar, val := ui.RGBA(255, 255, 255, 0.45), t.Text
 	switch lv {
 	case levelHot:
-		bar, val = red, red
+		bar, val = ui2.Red, ui2.Red
 	case levelWarn:
 		bar, val = yellow, yellow
 	}
@@ -136,7 +137,7 @@ func (m *Module) procRow(c *ui.Context, t kit.Theme, p procs.Proc) {
 			if b := m.icon(p); b != nil {
 				ui.Image(c, b).Size(kit.IconL, kit.IconL).Shrink(0)
 			} else {
-				ui.Icon(c, procIcon).Size(kit.IconL, kit.IconL).Shrink(0).TextColor(t.Muted)
+				ui.Icon(c, ui2.ProcIcon).Size(kit.IconL, kit.IconL).Shrink(0).TextColor(t.Muted)
 			}
 			ui.Text(c, name).FontSize(kit.TextBody).FontWeight(kit.WeightSemibold).SingleLine().Ellipsis("…").MinWidth(0).Shrink(0)
 			if sub != "" {
@@ -148,13 +149,13 @@ func (m *Module) procRow(c *ui.Context, t kit.Theme, p procs.Proc) {
 		})
 		ui.Text(c, fmt.Sprint(p.PID)).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).Width(colPID).Shrink(0).TextAlign(ui.End).SingleLine()
 		ui.Row(c).Width(colCPU).Shrink(0).Gap(10).Justify(ui.End).Children(func() {
-			frac := float32(clamp01(p.CPU / 100))
+			frac := float32(ui2.Clamp01(p.CPU / 100))
 			ui.Box(c).Width(72).Height(6).Radius(3).Background(ui.RGBA(255, 255, 255, 0.06)).Children(func() {
 				ui.Box(c).WidthPercent(max(frac, 0.04) * 100).FillHeight().Radius(3).Background(bar)
 			})
 			ui.Text(c, fmt.Sprintf("%.1f", p.CPU)).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(val).Width(52).TextAlign(ui.End).SingleLine()
 		})
-		mem := dash
+		mem := ui2.Dash
 		if p.MemBytes > 0 {
 			mem = kit.HumanSize(int64(p.MemBytes))
 		}

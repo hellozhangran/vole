@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	ui2 "vole/internal/features/statusui"
 
 	"github.com/egoist/mygo/ui"
 
@@ -283,11 +284,11 @@ func TestUnavailableShowsError(t *testing.T) {
 }
 
 func TestHealthText(t *testing.T) {
-	level, issues := healthText("Needs Attention: High Memory, Something New")
+	level, issues := ui2.HealthText("Needs Attention: High Memory, Something New")
 	if level != "需要关注" || issues != "内存占用偏高，Something New" {
 		t.Fatalf("got %q %q", level, issues)
 	}
-	if level, issues := healthText("Excellent"); level != "优秀" || issues != "没有发现问题" {
+	if level, issues := ui2.HealthText("Excellent"); level != "优秀" || issues != "没有发现问题" {
 		t.Fatalf("got %q %q", level, issues)
 	}
 }
@@ -303,7 +304,7 @@ func TestHealthArt(t *testing.T) {
 		{"Fair: High Memory", 50, kit.ArtHealthFair}, {"Needs Attention: Disk Almost Full", 30, kit.ArtHealthPoor},
 		{"", 70, kit.ArtHealthGood}, {"", 50, kit.ArtHealthFair}, {"", 10, kit.ArtHealthPoor}, {"", -1, kit.ArtHealthGood},
 	} {
-		if got := healthArt(c.note, c.score); got != c.want {
+		if got := ui2.HealthArt(c.note, c.score); got != c.want {
 			t.Fatalf("%q %d：%s", c.note, c.score, got)
 		}
 	}

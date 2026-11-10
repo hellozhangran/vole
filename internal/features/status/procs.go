@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	ui2 "vole/internal/features/statusui"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -350,7 +351,7 @@ func explainText(p procs.Proc, ex procs.Explanation, now time.Time) string {
 	}
 	add("可执行文件", p.Path)
 	if !p.Started.IsZero() {
-		add("启动时间", p.Started.Format("2006-01-02 15:04:05")+"（已运行 "+uptimeText(now.Sub(p.Started))+"）")
+		add("启动时间", p.Started.Format("2006-01-02 15:04:05")+"（已运行 "+ui2.UptimeText(now.Sub(p.Started))+"）")
 	}
 	user := p.User
 	if user != "" {
