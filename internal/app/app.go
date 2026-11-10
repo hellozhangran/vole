@@ -5,11 +5,16 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/egoist/mygo"
 
 	core "vole/internal/core/analyze"
 	"vole/internal/core/analyze/mole"
 	"vole/internal/core/binloc"
+	"vole/internal/core/fsops"
 	"vole/internal/core/procs"
 	corestatus "vole/internal/core/status"
 	statusmole "vole/internal/core/status/mole"
@@ -17,6 +22,7 @@ import (
 	"vole/internal/features/analyze"
 	"vole/internal/features/apps"
 	"vole/internal/features/clean"
+	"vole/internal/features/menubar"
 	"vole/internal/features/status"
 	"vole/internal/module"
 	"vole/internal/shell"
@@ -34,6 +40,8 @@ func Run() error {
 		src = missing{err} // 找不到 analyze 时每次扫描都报这条错，界面上显示出来
 	}
 	env := sysenv.Probe()
+	// 状态 tab 和菜单栏面板共用一个 status 采集进程：谁先打开谁启动，都关了才停
+	stat := corestatus.NewShared(statusSource())
 
 	// 新增功能 = 在这里加一行
 	modules := []module.Module{
@@ -41,14 +49,29 @@ func Run() error {
 		apps.New(apps.NewBackend()),
 		// 「优化」发版前不做，先隐藏（作者 2026-11-10 决定）；调研与设计见 .local plan 3.11
 		analyze.New(src, env),
-		status.New(statusSource(), procs.PS{}),
+		status.New(stat, procs.PS{}),
 	}
 	// 开发 / 实测用：VOLE_START_TAB=status 启动时直接停在状态 tab
 	start := "analyze"
 	if v := os.Getenv("VOLE_START_TAB"); v != "" {
 		start = v
 	}
-	return shell.Run(shell.Options{Name: "Vole", Version: Version, Modules: modules, DefaultID: start})
+	logDir := filepath.Join(env.Home, "Library", "Logs", "Vole") // 清理和卸载共用的操作日志目录
+	bar := &shell.MenuBar{Icon: menubar.TrayIcon, Width: menubar.Width,
+		Panel: func(ctl shell.Controller) shell.Panel {
+			return menubar.New(menubar.Options{Source: stat, Host: ctl, Login: loginItem(),
+				Freed: func() fsops.Freed { return fsops.ReadFreed(logDir) }, Ports: sysenv.HardwarePorts})
+		}}
+	return shell.Run(shell.Options{Name: "Vole", Version: Version, Modules: modules, DefaultID: start, MenuBar: bar})
+}
+
+// loginItem 是「开机时启动」开关：只有从 .app 里运行时系统才让注册（开发时 go run 出来的不是 .app）。
+func loginItem() menubar.Login {
+	exe, _ := os.Executable()
+	if !strings.Contains(exe, ".app/Contents/MacOS/") {
+		return menubar.Login{Disabled: "开发版不是 .app，系统不让注册登录项；打包后可用"}
+	}
+	return menubar.Login{Enabled: mygo.App.OpenAtLogin, Set: mygo.App.SetOpenAtLogin}
 }
 
 // statusSource 定位打包的 status 二进制；找不到时每次 Watch 都报「状态组件不可用」，界面上显示出来。

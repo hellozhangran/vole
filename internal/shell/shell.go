@@ -4,6 +4,8 @@ package shell
 
 import (
 	_ "embed"
+	"fmt"
+	"os"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -18,6 +20,30 @@ type Options struct {
 	Name, Version string
 	Modules       []module.Module // 顺序 = tab 顺序
 	DefaultID     string          // 启动时停在哪个 tab
+	MenuBar       *MenuBar        // 非空：常驻菜单栏，关主窗口不退出
+}
+
+// MenuBar 是菜单栏图标和它弹出的面板。
+type MenuBar struct {
+	Icon  []byte // template 图标（黑色 + 透明，32px = 16pt @2x）
+	Width int    // 面板宽度（pt）；高度由 Panel.Height 决定
+	// Panel 用外壳给的 Controller 建面板（面板里的「打开 Vole」「退出」要回调外壳）。
+	Panel func(ctl Controller) Panel
+}
+
+// Panel 是菜单栏面板：弹出时 Show（开始采集），收起时 Hide（停掉）。
+type Panel interface {
+	Init(tasks *task.Runner)
+	Show()
+	Hide()
+	View(c *ui.Context)
+	Height() int // 面板现在该有的高度（pt），随内容变；外壳每次更新后按它调大小
+}
+
+// Controller 是面板能让外壳做的事。
+type Controller interface {
+	ShowMain(tab string) // 打开（必要时重新显示）主窗口；tab 非空时切过去
+	Quit()
 }
 
 // host 为单个模块提供能力。
@@ -30,6 +56,12 @@ type Shell struct {
 	opts    Options
 	active  int
 	runners []*task.Runner
+
+	win       *mygo.Window
+	visible   bool         // 主窗口显示着
+	fly       *mygo.Window // 菜单栏面板
+	tray      *mygo.Tray
+	noMenuBar bool // 菜单栏图标没建成，退回「关窗即退出」
 }
 
 // newShell 创建外壳并初始化所有模块；post 把函数排到主线程（窗口里是 win.Update，测试里是队列）。
@@ -64,9 +96,12 @@ func (s *Shell) close() {
 }
 
 // Run 打开主窗口，阻塞到应用退出。
+// 有菜单栏时：关主窗口只是隐藏（同时隐藏 Dock 图标，切成 accessory），⌘Q 或面板里的「退出」才真正退出；
+// 开机自启时主窗口不显示，只留菜单栏图标。
 func Run(opts Options) error {
 	var s *Shell
 	closed := false
+	quitting := false
 	mygo.App.SetName(opts.Name)
 	mygo.App.WhenReady(func() {
 		var win *mygo.Window
@@ -77,25 +112,159 @@ func Run(opts Options) error {
 				}
 			})
 		}
+		atLogin := opts.MenuBar != nil && mygo.App.WasOpenedAtLogin()
 		win = mygo.NewWindow(mygo.WindowOptions{
 			Title: opts.Name, Width: 1200, Height: 780, MinWidth: 900, MinHeight: 600,
 			Content:              ui.View(func(c *ui.Context) { s.View(c) }),
 			TitleBarStyle:        mygo.TitleBarHiddenInset,
 			TrafficLightPosition: &mygo.Point{X: 16, Y: 20},
 			BackgroundColor:      "#2a1e1a",
+			Hidden:               atLogin,
 		})
 		s = newShell(opts, post)
+		s.win, s.visible = win, !atLogin
+		if atLogin {
+			s.opts.Modules[s.active].OnDeactivate() // 不显示主窗口时，只在可见时才跑的东西不跑
+			mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
+		}
 		win.Invalidate()
+		if opts.MenuBar == nil {
+			return
+		}
+		win.OnClose(func(e *mygo.CloseEvent) {
+			if quitting {
+				return
+			}
+			e.PreventDefault()
+			s.hideMain()
+		})
+		// 主窗口隐藏时再打开 app（Finder 里双击、Spotlight 打开）：重新显示
+		mygo.App.OnActivate(func(hasVisibleWindows bool) {
+			if !s.visible {
+				s.ShowMain("")
+			}
+		})
+		if err := s.startMenuBar(&quitting); err != nil {
+			// 菜单栏起不来时退回普通窗口 app：关窗就退出
+			fmt.Fprintln(os.Stderr, "菜单栏图标创建失败：", err)
+			s.noMenuBar = true
+		}
 	})
 	mygo.App.OnBeforeQuit(func(*mygo.QuitEvent) {
+		quitting = true
 		closed = true
 		if s != nil {
 			s.close()
 		}
 	})
-	mygo.App.OnWindowAllClosed(func() { mygo.App.Quit() })
+	mygo.App.OnWindowAllClosed(func() {
+		if opts.MenuBar == nil || (s != nil && s.noMenuBar) {
+			mygo.App.Quit()
+		}
+	})
 	return mygo.App.Run()
 }
+
+// startMenuBar 建菜单栏图标和面板（面板一开始隐藏，点图标弹出 / 收起）。
+func (s *Shell) startMenuBar(quitting *bool) error {
+	mb := s.opts.MenuBar
+	tray, err := mygo.NewTray(mygo.TrayOptions{ID: "vole", Icon: mb.Icon, IconIsTemplate: true, ToolTip: s.opts.Name})
+	if err != nil {
+		return err
+	}
+	panel := mb.Panel(s)
+	height := panel.Height()
+	var fly *mygo.Window
+	fly = mygo.NewFlyout(mygo.FlyoutOptions{
+		Tray: tray, Placement: mygo.PlacementBottom, Gap: 4,
+		Width: mb.Width, Height: height, Focusable: true, Shadow: true, CornerRadius: 14, Hidden: true,
+		Content: ui.View(func(c *ui.Context) {
+			panel.View(c)
+			// 内容变了（比如确认没有电池、读到了清理记录）就跟着改高度。不在绘制中途改窗口，排到下一轮；
+			// 只在高度不一致时才排，改完就一致了，不会反复触发。SetSize 会按图标位置重新摆。
+			if panel.Height() != height {
+				fly.Update(func() {
+					if h := panel.Height(); h != height {
+						height = h
+						fly.SetSize(mb.Width, h)
+					}
+				})
+			}
+		}),
+	})
+	r := task.NewRunner(func(fn func()) { fly.Update(fn) })
+	s.runners = append(s.runners, r)
+	panel.Init(r)
+	s.fly = fly
+	fly.OnShow(panel.Show)
+	fly.OnHide(panel.Hide)
+	// 点面板外面、按 Esc 时系统会关面板：改成隐藏，下次点图标还用同一个
+	fly.OnClose(func(e *mygo.CloseEvent) {
+		if *quitting {
+			return
+		}
+		e.PreventDefault()
+		fly.Hide()
+	})
+	tray.OnClick(func() {
+		if fly.IsVisible() {
+			fly.Hide()
+		} else {
+			s.showPanel()
+		}
+	})
+	s.tray = tray
+	return nil
+}
+
+// showPanel 弹出面板。弹出前先按菜单栏图标「现在」的位置重新摆一次：
+// mygo 的面板只在创建时按 tray.Bounds() 定一次位置，Show 不会重新定位，没有父窗口也不会因为父窗口移动而重排
+// （mygo internal/darwin/window.go 的 PlaceFlyout 只在创建、SetAnchor、SetSize 时调）。Vole 启动时就建好面板，
+// 那时图标可能被刘海挡住（Bounds 不对），用户之后按住 ⌘ 拖动图标换位置也一样，面板就会弹在别处（作者实测在左下角）。
+// SetAnchor 对挂在图标上的面板会忽略传入的矩形、重新取 tray.Bounds()，这里只借它触发重新定位。
+// 图标真被刘海完全挡住时 Bounds 宽高为 0，mygo 会把面板放到主屏中央。以后可以给 mygo 报：Show 时应重新定位。
+func (s *Shell) showPanel() {
+	s.fly.SetAnchor(mygo.Rectangle{})
+	s.fly.Show()
+}
+
+// hideMain 把主窗口藏起来（关窗时），并隐藏 Dock 图标；当前模块停掉只在可见时才跑的东西。
+func (s *Shell) hideMain() {
+	if !s.visible {
+		return
+	}
+	s.visible = false
+	s.opts.Modules[s.active].OnDeactivate()
+	s.win.Hide()
+	mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
+}
+
+// ShowMain 显示主窗口（隐藏着就重新显示，恢复 Dock 图标），tab 非空时切过去。面板会先收起。
+func (s *Shell) ShowMain(tab string) {
+	if s.fly != nil && s.fly.IsVisible() {
+		s.fly.Hide()
+	}
+	target := s.active
+	for i, m := range s.opts.Modules {
+		if m.ID() == tab {
+			target = i
+		}
+	}
+	if !s.visible {
+		s.visible = true
+		mygo.App.SetActivationPolicy(mygo.ActivationPolicyRegular)
+		s.active = target
+		s.opts.Modules[s.active].OnActivate()
+	} else if target != s.active {
+		s.switchTo(target, s.opts.Modules[target])
+	}
+	s.win.Show()
+	mygo.App.Focus()
+	s.win.Invalidate()
+}
+
+// Quit 退出 Vole（面板里的「退出」）。
+func (s *Shell) Quit() { mygo.App.Quit() }
 
 // View 画整个窗口：主题背景 + 顶栏 + 当前模块。
 func (s *Shell) View(c *ui.Context) {
