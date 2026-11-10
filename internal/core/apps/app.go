@@ -53,7 +53,7 @@ type App struct {
 	Ident fsops.Identity
 }
 
-// Idle 是很久没用：上次使用超过 3 个月（plan 3.10.10 第 5 条）。
+// Idle 是很久没用：上次使用超过 3 个月。
 func (a App) Idle(now time.Time) bool {
 	return !a.LastUsed.IsZero() && now.Sub(a.LastUsed) > 90*24*time.Hour
 }

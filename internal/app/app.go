@@ -47,7 +47,7 @@ func Run() error {
 	modules := []module.Module{
 		clean.New(clean.NewBackend()),
 		apps.New(apps.NewBackend()),
-		// 「优化」发版前不做，先隐藏（作者 2026-11-10 决定）；调研与设计见 .local plan 3.11
+		// 「优化」发版前不做，先隐藏（作者 2026-11-10 决定）
 		analyze.New(src, env),
 		status.New(stat, procs.PS{}),
 	}

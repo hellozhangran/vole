@@ -114,7 +114,7 @@ func TestTypescaleSnapshots(t *testing.T) {
 	snap(t, tt, "typescale-analyze")
 	sideBySide(t, tt, "mole-ui/02-analyze-root-partial.png", "typescale-analyze-vs-mole")
 
-	r, ok := tt.Find("块 Users/ran")
+	r, ok := tt.Find("块 Users/" + filepath.Base(os.Getenv("HOME")))
 	if !ok {
 		r, ok = tt.Find("块 " + filepath.Base(os.Getenv("HOME")))
 	}
@@ -129,15 +129,19 @@ func TestTypescaleSnapshots(t *testing.T) {
 	sideBySide(t, st, "mole-ui/04-status.png", "typescale-status-vs-mole")
 }
 
-// sideBySide 把 Mole 参考图（.local/dev 下）和 Vole 当前画面左右拼在一起。
+// sideBySide 把 Mole app 的参考截图（目录由 VOLE_MOLE_REF_DIR 指定，截图不随仓库发布）和 Vole 当前画面左右拼在一起。
 func sideBySide(t *testing.T, tt *ui.Tester, ref, name string) {
 	dir := os.Getenv("VOLE_SNAPSHOT_DIR")
 	if dir == "" {
 		return
 	}
-	f, err := os.Open(filepath.Join("..", "..", ".local", "dev", ref))
+	refDir := os.Getenv("VOLE_MOLE_REF_DIR")
+	if refDir == "" {
+		return // 没有参考图
+	}
+	f, err := os.Open(filepath.Join(refDir, ref))
 	if err != nil {
-		return // 不在作者本机：没有参考图
+		return
 	}
 	defer f.Close()
 	mole, err := png.Decode(f)

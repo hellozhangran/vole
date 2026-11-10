@@ -8,7 +8,7 @@ import (
 	"vole/internal/core/analyze"
 )
 
-// 以下结构对应 analyze --json 的输出格式（字段名见 research/01），仅用于反序列化。
+// 以下结构对应 analyze --json 的输出格式（定义见 third_party/mole/cmd/analyze/json.go），仅用于反序列化。
 type rawOutput struct {
 	ScanStatus string     `json:"scan_status"`
 	Path       string     `json:"path"`

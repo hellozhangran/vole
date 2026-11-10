@@ -194,7 +194,7 @@ func (m *Module) closeResults() {
 // selectable 是能勾选的项（没被挡住）。
 func selectable(it core.Item) bool { return it.Blocked == "" }
 
-// recommend 恢复默认勾选（plan 3.8.9 的分档）。
+// recommend 恢复默认勾选（按 core/clean 规则里的默认分档）。
 func (m *Module) recommend() {
 	m.sel = map[string]bool{}
 	for _, it := range m.items() {

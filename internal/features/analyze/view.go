@@ -181,7 +181,7 @@ func (m *Module) header(c *ui.Context, t kit.Theme, v viewState) {
 	})
 }
 
-// breadcrumb 是「整个磁盘 › Users/ran › Library」，点前面的段回到那一层（不重扫）。
+// breadcrumb 是「整个磁盘 › Users/alice › Library」，点前面的段回到那一层（不重扫）。
 func (m *Module) breadcrumb(c *ui.Context, t kit.Theme) {
 	ui.Row(c.Key("crumbs")).Gap(2).MinWidth(0).Shrink(1).Children(func() {
 		crumb := func(depth int, name string, icon bool) {

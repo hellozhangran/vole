@@ -1,6 +1,6 @@
 // Package binloc 定位随 Vole 打包的外部二进制。
 // 顺序：环境变量覆盖（开发期）→ 可执行文件旁的 ../Resources/<name>（.app 内）。
-// 不查 PATH：用户不需要自己装 mole（plan 决策 5）。
+// 不查 PATH：用户不需要自己装 mole（analyze、status 随 app 打包）。
 package binloc
 
 import (

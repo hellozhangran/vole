@@ -291,7 +291,7 @@ func (m *Module) refreshDisk() {
 	m.disk, m.diskOK = d, err == nil
 }
 
-// displayName 是路径在面包屑和列表里的名字：根项用根名（如 Users/ran），其余取最后一段。
+// displayName 是路径在面包屑和列表里的名字：根项用根名（如 Users/alice），其余取最后一段。
 func (m *Module) displayName(path string) string {
 	for _, r := range m.roots {
 		if r.path == path {

@@ -43,8 +43,8 @@ func TestParseScanAndDetails(t *testing.T) {
 	if rows[0].started.Day() != 8 || rows[0].started.Hour() != 17 {
 		t.Fatalf("lstart 解析不对：%v", rows[0].started)
 	}
-	d := parseDetails([]byte("  500 ran      /Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness Helper (Renderer)\n    1 root     /sbin/launchd\n"))
-	if d[500].user != "ran" || d[500].path != "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness Helper (Renderer)" || d[1].path != "/sbin/launchd" {
+	d := parseDetails([]byte("  500 alice      /Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness Helper (Renderer)\n    1 root     /sbin/launchd\n"))
+	if d[500].user != "alice" || d[500].path != "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness Helper (Renderer)" || d[1].path != "/sbin/launchd" {
 		t.Fatalf("parseDetails：%+v", d)
 	}
 }
@@ -88,7 +88,7 @@ func TestSamplerCPUFromDeltas(t *testing.T) {
 			// 2 秒后：10 用了 1.6s CPU（80%），20 用了 0.2s（10%），30 没动；40 是新进程（没有上一次，记 0）
 			[]byte(line(10, 501, 100, "0:02.60") + line(20, 501, 900, "0:05.20") + line(30, 0, 50, "0:00.00") + line(40, 501, 10, "0:09.00")),
 		},
-		details: []byte("10 ran /bin/busy\n20 ran /Applications/X.app/Contents/MacOS/X\n30 root /usr/libexec/idle\n40 ran /bin/new\n"),
+		details: []byte("10 alice /bin/busy\n20 alice /Applications/X.app/Contents/MacOS/X\n30 root /usr/libexec/idle\n40 alice /bin/new\n"),
 	}
 	s := newSampler(f.run)
 	t0 := time.Now()
@@ -108,7 +108,7 @@ func TestSamplerCPUFromDeltas(t *testing.T) {
 	if list[0].CPU < 79.9 || list[0].CPU > 80.1 || list[1].CPU < 9.9 || list[1].CPU > 10.1 {
 		t.Fatalf("CPU 应按累计时间差算：%v %v", list[0].CPU, list[1].CPU)
 	}
-	if list[1].Name != "X" || list[1].User != "ran" || list[1].MemBytes != 900*1024 {
+	if list[1].Name != "X" || list[1].User != "alice" || list[1].MemBytes != 900*1024 {
 		t.Fatalf("细节不对：%+v", list[1])
 	}
 	// 路径只对新进入列表的进程查：第二次只该补查没缓存过的

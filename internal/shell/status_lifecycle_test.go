@@ -51,7 +51,7 @@ func waitPIDs(t *testing.T, bin string, want bool) {
 func TestStatusProcessLifecycle(t *testing.T) {
 	bin := os.Getenv("VOLE_STATUS_BIN")
 	if bin == "" {
-		bin, _ = filepath.Abs("../../.local/dev/bin/status")
+		bin, _ = filepath.Abs("../../build/dev-bin/status")
 	}
 	if _, err := os.Stat(bin); err != nil {
 		t.Skip("没有 status 二进制（scripts/build-mole.sh status）")

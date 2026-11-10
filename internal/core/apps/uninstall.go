@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // 卸载的执行顺序参考自 tw93/Mole lib/uninstall/batch.sh（commit 6d1af75，GPL-3.0）：_batch_execute_removals（:2692）、
 // unload_launch_plist（:434）、unregister_app_bundle（:619）、brew 卸载不加 --zap（:2780）；退出 app 参考
-// lib/core/app_protection.sh force_kill_app（:2730）。用 Go 重写；和 Mole 的不同：退不掉的 app 跳过不删（plan 3.10.10 第 2 条）。
+// lib/core/app_protection.sh force_kill_app（:2730）。用 Go 重写；和 Mole 的不同：退不掉的 app 跳过不删。
 
 package apps
 
@@ -311,7 +311,7 @@ func quitApp(ctx context.Context, env *Env, app App) error {
 }
 
 // removeApp 移走 app 本体：Homebrew 装的交给 brew（不加 --zap）；当前用户能改的直接移到废纸篓；
-// root 拥有的交给 Finder，由系统弹管理员密码框（plan 3.10.10 第 3 条）。
+// root 拥有的交给 Finder，由系统弹管理员密码框。
 func removeApp(ctx context.Context, env *Env, app App) error {
 	if app.Source == SourceHomebrew && app.CaskToken != "" {
 		if brew, err := env.LookPath("brew"); err == nil {

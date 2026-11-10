@@ -128,16 +128,16 @@ var started = time.Date(2026, 11, 7, 5, 13, 50, 0, time.Local)
 func sampleProcs(n int) []procs.Proc {
 	me := os.Getuid()
 	list := []procs.Proc{
-		{PID: 74115, PPID: 1, UID: me, User: "ran", Name: "analyze", Path: "/Applications/Vole.app/Contents/Resources/analyze", CPU: 126.5, MemBytes: 17e6, Started: started},
+		{PID: 74115, PPID: 1, UID: me, User: "alice", Name: "analyze", Path: "/Applications/Vole.app/Contents/Resources/analyze", CPU: 126.5, MemBytes: 17e6, Started: started},
 		{PID: 245, PPID: 1, UID: 0, User: "root", Name: "syspolicyd", Path: "/usr/libexec/syspolicyd", CPU: 93.6, MemBytes: 39e6, Started: started},
-		{PID: 93944, PPID: 1, UID: me, User: "ran", Name: "replayd", Path: "/usr/libexec/replayd", CPU: 44, MemBytes: 11e6, Started: started},
+		{PID: 93944, PPID: 1, UID: me, User: "alice", Name: "replayd", Path: "/usr/libexec/replayd", CPU: 44, MemBytes: 11e6, Started: started},
 		{PID: 152, PPID: 1, UID: 88, User: "_windowserver", Name: "WindowServer", Path: "/System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer", CPU: 32.2, MemBytes: 157e6, Started: started},
-		{PID: 11428, PPID: 300, UID: me, User: "ran", Name: "DeepSeek Harness Helper (Renderer)",
+		{PID: 11428, PPID: 300, UID: me, User: "alice", Name: "DeepSeek Harness Helper (Renderer)",
 			Path: "/Applications/DeepSeek Harness.app/Contents/Frameworks/DeepSeek Harness Helper (Renderer).app/Contents/MacOS/DeepSeek Harness Helper (Renderer)", CPU: 29.1, MemBytes: 293e6, Started: started},
-		{PID: 64297, PPID: 1, UID: me, User: "ran", Name: "ChatGPT", Path: "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT", CPU: 11.2, MemBytes: 358e6, Started: started},
+		{PID: 64297, PPID: 1, UID: me, User: "alice", Name: "ChatGPT", Path: "/Applications/ChatGPT.app/Contents/MacOS/ChatGPT", CPU: 11.2, MemBytes: 358e6, Started: started},
 	}
 	for i := len(list); i < n; i++ {
-		list = append(list, procs.Proc{PID: 20000 + i, PPID: 1, UID: me, User: "ran", Name: fmt.Sprintf("worker%02d", i), Path: fmt.Sprintf("/usr/bin/worker%02d", i), CPU: float64(n-i) / 10, MemBytes: uint64(i) * 1e6, Started: started})
+		list = append(list, procs.Proc{PID: 20000 + i, PPID: 1, UID: me, User: "alice", Name: fmt.Sprintf("worker%02d", i), Path: fmt.Sprintf("/usr/bin/worker%02d", i), CPU: float64(n-i) / 10, MemBytes: uint64(i) * 1e6, Started: started})
 	}
 	return list
 }
@@ -281,7 +281,7 @@ func TestProcMenuActions(t *testing.T) {
 	info := rec.alerts[0]
 	rec.mu.Unlock()
 	for _, s := range []string{"「DeepSeek Harness」为什么在运行", "可执行文件：/Applications/DeepSeek Harness.app", "启动时间：2026-11-07 05:13:50",
-		"所属用户：ran（UID", "父进程链：" + helper + " (11428) → DeepSeek Harness (300) → launchd (1)",
+		"所属用户：alice（UID", "父进程链：" + helper + " (11428) → DeepSeek Harness (300) → launchd (1)",
 		"launchd 任务：com.example.agent（gui/501 域；本进程由该任务的进程 300 派生）", "plist：/Library/LaunchAgents/com.example.agent.plist"} {
 		if !strings.Contains(info, s) {
 			t.Fatalf("说明里缺 %q：\n%s", s, info)

@@ -103,7 +103,7 @@ func fakeResult() *core.ScanResult {
 			item(core.CatCaches, "caches.apps:~/Library/Caches/ms-playwright", "ms-playwright", 2_800_000_000, true, "在白名单里：默认不清理（删了要重新下载或重建）"),
 			item(core.CatCaches, "caches.apps:~/Library/Caches/puccinialin", "puccinialin", 489_000_000, false, ""),
 			item(core.CatCaches, "caches.apps:~/Library/Caches/com.youdao.YoudaoDict", "com.youdao.YoudaoDict", 450_000_000, true, "网易有道翻译 正在运行"),
-			item(core.CatCaches, "caches.apps:~/Library/Caches/dev.soulbot.app", "dev.soulbot.app", 6_300_000, true, ""),
+			item(core.CatCaches, "caches.apps:~/Library/Caches/com.example.notes", "com.example.notes", 6_300_000, true, ""),
 			item(core.CatCaches, "caches.apps:~/Library/Caches/com.apple.familycircled", "familycircled", 1_000_000, true, core.SystemBusy+"familycircled 正在使用"),
 		}},
 		{ID: core.CatBrowser, Title: "浏览器缓存", Items: []core.Item{
@@ -325,7 +325,7 @@ func TestCleanFlow(t *testing.T) {
 		t.Fatal("应进入清理中")
 	}
 	want := "dev.gobuild:~/Library/Caches/go-build,dev.cocoapods:~/Library/Caches/CocoaPods,dev.npm:~/.npm/_cacache," +
-		"xcode.simcaches:~/Library/Developer/CoreSimulator/Caches,caches.apps:~/Library/Caches/dev.soulbot.app," +
+		"xcode.simcaches:~/Library/Developer/CoreSimulator/Caches,caches.apps:~/Library/Caches/com.example.notes," +
 		"logs.user:~/Library/Logs/app.mangodisk.desktop,logs.user:~/Library/Logs/DiagnosticReports"
 	runs := h.runs()
 	if len(runs) != 1 || ids(runs[0]) != want {

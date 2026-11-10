@@ -87,7 +87,7 @@ func uvPrunable(ctx context.Context, root string) (int64, bool) {
 
 // uvSymlinkRisk：uv 的全局配置里 link-mode 设成 symlink 时，venv 里的包是指向缓存的链接，清空缓存会让它们失效。
 // 查环境变量 UV_LINK_MODE、用户配置（$XDG_CONFIG_HOME/uv/uv.toml、~/.config/uv/uv.toml）、系统配置（/etc/uv/uv.toml）。
-// 各项目自己 pyproject.toml / uv.toml 里的设置不扫（已知盲区，见 m5-notes）。
+// 各项目自己 pyproject.toml / uv.toml 里的设置不扫（已知盲区）。
 func uvSymlinkRisk(env *Env) string {
 	const risk = "检测到 uv 使用 symlink 模式，清空缓存会让已有虚拟环境失效。"
 	getenv := func(k string) string {

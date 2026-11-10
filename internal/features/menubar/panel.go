@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Package menubar 是菜单栏快捷面板：点菜单栏的田鼠图标弹出，布局照 Mole 的菜单栏面板（.local/dev/mole-ui/18）：
+// Package menubar 是菜单栏快捷面板：点菜单栏的田鼠图标弹出，布局参照 Mole app 的菜单栏面板：
 // 头部健康分和机器信息、CPU / 内存 / 磁盘 / 网络四张卡、电池、高占用进程，底部一排快捷按钮和「清理观察」。
 // 卡片和图表跟状态 tab 共用 features/statusui；数据全部来自 core/status（和状态 tab 共用一个采集进程），
 // 只在面板打开时采集，关上就停。状态只在主线程读写。
@@ -26,7 +26,7 @@ import (
 )
 
 // 菜单栏图标：田鼠侧面剪影，template 图标（黑色 + 透明，系统按深浅色着色）。
-// 由 .local/dev/menubar/make_icons.py 从奔跑帧提取（候选 a2-side-ear），32px = 16pt @2x。
+// 从奔跑动画的第 1 帧提取侧面剪影，32px = 16pt @2x。
 //
 //go:embed tray@2x.png
 var TrayIcon []byte

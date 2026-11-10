@@ -3,7 +3,7 @@
 // 名字变体（:1337）、常见名（:744）、厂商目录（:759、:889）、独立命令行工具（:1035）、LaunchAgent 归属（:839）、
 // app 内嵌的 bundle id（:1124）、find_app_system_files（:2290）、崩溃报告（:2200）；分类参考 lib/uninstall/review.sh（:4）；
 // 共享数据判断参考 lib/uninstall/batch.sh（:990-1044、:2006-2116）。用 Go 重写，只删用户级。
-// 「Vole 补充」的几条规则（entitlements、Electron 包名、内嵌 app 名、明确的点目录）是 Vole 自己加的，见 dev/m6-notes.md。
+// 「Vole 补充」的几条规则（entitlements、Electron 包名、内嵌 app 名、明确的点目录）是 Vole 自己加的，依据写在下面各条规则的注释里。
 
 package apps
 
@@ -465,7 +465,7 @@ func (f *finder) system() {
 	}
 }
 
-// ── Vole 补充规则（Mole 命令行版没有；全部算个人数据、默认不勾，plan 3.10.10 第 4 条，依据见 dev/m6-notes.md）──
+// ── Vole 补充规则（Mole 命令行版没有；全部算个人数据、默认不勾）──
 
 // dotDirs：明确知道属于某个 app 的家目录点目录（Mole 不从名字推点目录，要逐个写明）。
 var dotDirs = map[string][]string{

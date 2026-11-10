@@ -9,7 +9,7 @@ import (
 	"vole/internal/core/status"
 )
 
-// 以下结构对应 Mole status --watch 每行 JSON 的字段（见 .local/dev/m4-notes.md），只取 Vole 用得上的，仅用于反序列化。
+// 以下结构对应 Mole status --watch 每行 JSON 的字段（定义见 third_party/mole/cmd/status/metrics.go 的 MetricsSnapshot），只取 Vole 用得上的，仅用于反序列化。
 type rawSnapshot struct {
 	CollectedAt   time.Time `json:"collected_at"`
 	Host          string    `json:"host"`

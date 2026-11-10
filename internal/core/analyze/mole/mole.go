@@ -1,5 +1,5 @@
 // Package mole 实现 analyze.Source：exec 随 Vole 打包的 analyze 二进制（编译自 Mole cmd/analyze）。
-// 只做进程调用 + 解析 JSON，不引用、不拷贝 Mole 源码（GPL-3 约束，见 plan「许可证约束」）。
+// 只做进程调用 + 解析 JSON，不引用、不拷贝 Mole 源码（GPL-3 约束，见 THIRD_PARTY_NOTICES.md）。
 package mole
 
 import (

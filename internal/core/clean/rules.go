@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // 规则参考自 tw93/Mole lib/clean/*.sh（commit 6d1af75，GPL-3.0），每条注明对应位置；用 Go 数据重写。
-// 默认勾选按作者拍板分档（plan 3.8.9）：包缓存默认勾；Go module 缓存、DeviceSupport 默认不勾；废纸篓默认不勾。
+// 默认勾选的分档（设计决定）：包缓存默认勾；Go module 缓存、DeviceSupport 默认不勾；废纸篓默认不勾。
 
 package clean
 
@@ -70,8 +70,8 @@ func devRules() []Rule {
 			Tool: &Tool{Bin: "uv", Args: []string{"cache", "prune"}, RootArgs: []string{"cache", "dir"}, Env: []string{"UV_LOCK_TIMEOUT=3"},
 				Timeout: 20 * time.Second, GuardOnlyByPath: true, Estimate: uvPrunable},
 			Note: "由 uv 自己清理不再被引用的包（uv cache prune）；大小是按 uv 的索引估算的，项目正在用的包不会删。"},
-		// 作者拍板（plan 3.8.9 第 8 条）：另给一项「uv 全部缓存」，uv cache clean，需确认、默认不勾。
-		// macOS 上 uv 默认用 clone（写时复制）把包装进 .venv，删缓存不影响已装好的环境（本机抽查见 m5-notes）。
+		// 设计决定：另给一项「uv 全部缓存」，uv cache clean，需确认、默认不勾。
+		// macOS 上 uv 默认用 clone（写时复制）把包装进 .venv，删缓存不影响已装好的环境（开发时抽查过）。
 		// 有 uv / uvx 进程就跳过（uv 0.7 不认 UV_LOCK_TIMEOUT，拿不到锁会一直等）；新版 uv 拿不到锁时按输出识别。
 		{ID: "dev.uv.all", Title: "uv 全部缓存", Paths: []string{"~/.cache/uv"}, Guard: []string{"uv", "uvx"}, GuardReason: "uv 正在使用缓存",
 			GuardText: uvHolders, Risk: uvSymlinkRisk, Default: false,
@@ -94,7 +94,7 @@ func devRules() []Rule {
 		{ID: "dev.npmlogs", Title: "npm 日志", Paths: []string{"~/.npm/_logs", "~/.npm/_prebuilds"}, Default: true},
 		// dev.sh:1692
 		{ID: "dev.buildx", Title: "Docker BuildX 缓存", Paths: []string{"~/.docker/buildx/cache"}, Default: true, Note: "下次构建会重新生成。"},
-		// app_caches.sh:633 Zed npm 缓存：照命令行版默认勾，Zed 在运行就跳过（作者拍板，plan 3.8.9 第 9 条）
+		// app_caches.sh:633 Zed npm 缓存：照命令行版默认勾，Zed 在运行就跳过（设计决定）
 		{ID: "dev.zed", Title: "Zed LSP 缓存", Group: "Zed", Guard: []string{"zed", "Zed"}, Default: true,
 			Paths: []string{"~/Library/Application Support/Zed/node/cache", "~/Library/Application Support/Zed/node/node-v*/cache"},
 			Note:  "Zed 语言服务器的 npm 缓存，下次打开项目时会重新下载。"},

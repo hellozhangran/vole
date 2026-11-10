@@ -272,7 +272,7 @@ func candidates(ctx context.Context, env *Env, r *Rule) ([]Candidate, error) {
 			blocked := ""
 			switch {
 			case isGlob && shipItException(name):
-				// 作者拍板（plan 3.8.9 第 7 条）：com.todesktop.* 的 .ShipIt 只是更新下载包和日志，放开，但要确认
+				// 设计决定：com.todesktop.* 的 .ShipIt 只是更新下载包和日志，放开，但要确认
 			case isGlob && (protectedName(name) || protectedName(owner)), protectedPath(m, env.Home):
 				blocked = "受保护：这个 app 的数据按保护名单不清理"
 			case whitelisted(m, env):
