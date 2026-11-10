@@ -12,3 +12,15 @@
 node_modules/
 .DS_Store
 /vole-cli
+
+# 本地构建与测试产物（防止误提交）
+/vole
+/Vole
+*.test
+*.out
+*.prof
+*.dmg
+
+# AI 入口说明只在作者本机使用，不公开
+/CLAUDE.md
+/AGENTS.md
