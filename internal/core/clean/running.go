@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"vole/internal/i18n"
 )
 
 // ProcSnapshot 是某一刻正在运行的进程。
@@ -160,7 +161,7 @@ var (
 func snapshotProcesses(ctx context.Context, run func(context.Context, string, ...string) ([]byte, error)) (*ProcSnapshot, error) {
 	out, err := run(ctx, "/bin/ps", "-axo", "comm=")
 	if err != nil {
-		return nil, fmt.Errorf("读取进程列表失败：%w", err)
+		return nil, fmt.Errorf(i18n.T("读取进程列表失败：%w"), err)
 	}
 	s := &ProcSnapshot{Names: map[string]bool{}, BundleIDs: map[string]string{}, System: map[string]bool{}}
 	if out, err := run(ctx, "/bin/ps", "-axww", "-o", "pid=,args="); err == nil {

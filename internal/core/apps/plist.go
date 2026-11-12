@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"vole/internal/i18n"
 )
 
 // readPlist 读 plist（XML、二进制都行，.strings 也行）：用系统自带的 plutil 转成 JSON。
@@ -21,7 +22,7 @@ func readPlist(ctx context.Context, env *Env, p string) (map[string]any, error) 
 	defer cancel()
 	out, err := env.Run(ctx, "/usr/bin/plutil", "-convert", "json", "-o", "-", p)
 	if err != nil {
-		return nil, fmt.Errorf("读不了 %s：%w", filepath.Base(p), err)
+		return nil, fmt.Errorf(i18n.T("读不了 %s：%w"), filepath.Base(p), err)
 	}
 	var m map[string]any
 	if err := json.Unmarshal(out, &m); err != nil {

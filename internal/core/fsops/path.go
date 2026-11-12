@@ -4,10 +4,12 @@
 package fsops
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"unicode"
+	"vole/internal/i18n"
 )
 
 // CriticalPath 报告绝对路径是否是绝不能删的系统关键路径（含家目录本身）。
@@ -43,27 +45,27 @@ func CriticalPath(p, home string) bool {
 //   - 每一级上级目录都不能是 symlink：用真实路径比对，防止目录被链到别处后删到别的地方。
 func CheckPath(p, under string) error {
 	if p == "" || !filepath.IsAbs(p) {
-		return fmt.Errorf("不是绝对路径")
+		return errors.New(i18n.T("不是绝对路径"))
 	}
 	if p != filepath.Clean(p) {
-		return fmt.Errorf("路径不规范")
+		return errors.New(i18n.T("路径不规范"))
 	}
 	if strings.ContainsFunc(p, unicode.IsControl) {
-		return fmt.Errorf("路径含控制字符")
+		return errors.New(i18n.T("路径含控制字符"))
 	}
 	if !strings.HasPrefix(p, under+"/") {
-		return fmt.Errorf("不在家目录下")
+		return errors.New(i18n.T("不在家目录下"))
 	}
 	if CriticalPath(p, under) {
-		return fmt.Errorf("系统关键路径")
+		return errors.New(i18n.T("系统关键路径"))
 	}
 	parent := filepath.Dir(p)
 	real, err := filepath.EvalSymlinks(parent)
 	if err != nil {
-		return fmt.Errorf("无法确认上级目录：%v", err)
+		return fmt.Errorf(i18n.T("无法确认上级目录：%v"), err)
 	}
 	if real != parent {
-		return fmt.Errorf("上级目录经过符号链接（实际指向 %s）", real)
+		return fmt.Errorf(i18n.T("上级目录经过符号链接（实际指向 %s）"), real)
 	}
 	return nil
 }

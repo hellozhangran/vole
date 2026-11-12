@@ -12,6 +12,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	core "vole/internal/core/clean"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 )
 
@@ -29,15 +30,15 @@ var (
 		core.CatComms:   kit.LineIcon(`<path d="M4 5.5h16v10H10l-4.5 3.5v-3.5H4v-10Z"/>`),
 	}
 	catNotes = map[string]string{
-		core.CatDev:     "npm / uv / Go / CocoaPods 等开发缓存，下次构建时会重新下载",
-		core.CatXcode:   "编译产物和模拟器缓存，首次构建会稍慢",
-		core.CatCaches:  "应用的临时文件，下次启动时会重新生成",
-		core.CatBrowser: "网页缓存，不影响书签、密码和登录状态",
-		core.CatLogs:    "日志和崩溃报告，删了不影响使用",
-		core.CatTrash:   "清空废纸篓，里面的文件将无法恢复",
-		core.CatSystem:  "macOS 系统缓存，会自动重建",
-		core.CatAI:      "AI 应用的临时缓存，对话、项目和本地模型会保留",
-		core.CatComms:   "聊天 App 缓存，旧图片视频清理后需重新下载，过期内容无法找回",
+		core.CatDev:     i18n.T("npm / uv / Go / CocoaPods 等开发缓存，下次构建时会重新下载"),
+		core.CatXcode:   i18n.T("编译产物和模拟器缓存，首次构建会稍慢"),
+		core.CatCaches:  i18n.T("应用的临时文件，下次启动时会重新生成"),
+		core.CatBrowser: i18n.T("网页缓存，不影响书签、密码和登录状态"),
+		core.CatLogs:    i18n.T("日志和崩溃报告，删了不影响使用"),
+		core.CatTrash:   i18n.T("清空废纸篓，里面的文件将无法恢复"),
+		core.CatSystem:  i18n.T("macOS 系统缓存，会自动重建"),
+		core.CatAI:      i18n.T("AI 应用的临时缓存，对话、项目和本地模型会保留"),
+		core.CatComms:   i18n.T("聊天 App 缓存，旧图片视频清理后需重新下载，过期内容无法找回"),
 	}
 	closeIcon  = kit.CloseIcon
 	folderIcon = kit.FolderIcon
@@ -66,7 +67,7 @@ func (m *Module) resultsView(c *ui.Context, t kit.Theme) {
 					if shown == 0 {
 						ui.Column(c).FillWidth().AlignItems(ui.Center).Gap(10).Padding(40, 0).Children(func() {
 							kit.Art(c, kit.ArtCleanDone, kit.ArtS)
-							ui.Text(c, "没有发现可以清理的内容").FontSize(kit.TextHeadline)
+							ui.Text(c, i18n.T("没有发现可以清理的内容")).FontSize(kit.TextHeadline)
 						})
 					}
 				})
@@ -85,16 +86,16 @@ func (m *Module) resultsHeader(c *ui.Context, t kit.Theme) {
 		ui.Box(c).Absolute().Top(0).Left(0).Right(0).Height(kit.PageTop).DragWindow()
 		ui.Row(c).FillWidth().Padding(kit.PageTop, kit.PageX+44, 18, kit.PageX).Gap(16).AlignItems(ui.Start).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(6).Children(func() {
-				ui.Text(c, "准备开始清理").FontSize(kit.TextLargeTitle).FontWeight(kit.WeightSemibold).SingleLine()
+				ui.Text(c, i18n.T("准备开始清理")).FontSize(kit.TextLargeTitle).FontWeight(kit.WeightSemibold).SingleLine()
 				if s, fda := m.skippedSummary(); s != "" {
 					ui.Text(c, s).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).MaxLines(2).FillWidth()
 					if fda {
-						m.settingsLink(c, "fda-head", "去设置开启完全磁盘访问")
+						m.settingsLink(c, "fda-head", i18n.T("去设置开启完全磁盘访问"))
 					}
 				}
 			})
 		})
-		kit.IconButton(c.Key("close"), t, "关闭，回到首屏", closeIcon, 28).Background(t.Surface).
+		kit.IconButton(c.Key("close"), t, i18n.T("关闭，回到首屏"), closeIcon, 28).Background(t.Surface).
 			Absolute().Top(kit.PageTop).Right(kit.PageX).OnClick(m.closeResults)
 	})
 }
@@ -112,7 +113,7 @@ func (m *Module) skippedSummary() (text string, needFDA bool) {
 		case it.Blocked == fdaReason:
 			fdaN++
 		default:
-			name, ok := strings.CutSuffix(it.Blocked, " 正在运行")
+			name, ok := strings.CutSuffix(it.Blocked, i18n.T(" 正在运行"))
 			if !ok {
 				name, ok = holderName(it.Blocked)
 			}
@@ -130,44 +131,44 @@ func (m *Module) skippedSummary() (text string, needFDA bool) {
 	var parts []string
 	if runN > 0 {
 		sort.Strings(apps)
-		parts = append(parts, fmt.Sprintf("关闭 %s 后可再清理 %s · %d 项", strings.Join(apps, "、"), kit.HumanSize(runSize), runN))
+		parts = append(parts, fmt.Sprintf(i18n.T("关闭 %s 后可再清理 %s · %d 项"), strings.Join(apps, i18n.T("、")), kit.HumanSize(runSize), runN))
 	}
 	if fdaN > 0 {
-		parts = append(parts, fmt.Sprintf("%d 项需要完全磁盘访问", fdaN))
+		parts = append(parts, fmt.Sprintf(i18n.T("%d 项需要完全磁盘访问"), fdaN))
 	}
 	if otherN > 0 {
-		parts = append(parts, fmt.Sprintf("另有 %d 项暂时不能清理（展开查看原因）", otherN))
+		parts = append(parts, fmt.Sprintf(i18n.T("另有 %d 项暂时不能清理（展开查看原因）"), otherN))
 	}
-	return strings.Join(parts, "；"), fdaN > 0
+	return strings.Join(parts, i18n.T("；")), fdaN > 0
 }
 
 // holderName：「被 uv run 占用：my-mcp-server（PID 1、2）；PID 3」→「uv run（my-mcp-server）」，放进页头的「关闭…」。
 func holderName(reason string) (string, bool) {
-	rest, ok := strings.CutPrefix(reason, "被 ")
+	rest, ok := strings.CutPrefix(reason, i18n.T("被 "))
 	if !ok {
 		return "", false
 	}
-	kind, list, ok := strings.Cut(rest, " 占用：")
+	kind, list, ok := strings.Cut(rest, i18n.T(" 占用："))
 	if !ok {
 		return "", false
 	}
 	var names []string
-	for _, g := range strings.Split(list, "；") {
-		if n, _, ok := strings.Cut(g, "（PID"); ok {
+	for _, g := range strings.Split(list, i18n.T("；")) {
+		if n, _, ok := strings.Cut(g, i18n.T("（PID")); ok {
 			names = append(names, n)
 		}
 	}
 	if len(names) == 0 {
 		return kind, true
 	}
-	return kind + "（" + strings.Join(names, "、") + "）", true
+	return kind + i18n.T("（") + strings.Join(names, i18n.T("、")) + i18n.T("）"), true
 }
 
 // fdaReason 是缺完全磁盘访问时的原因（core/clean 写的）。
-const fdaReason = "需要完全磁盘访问"
+var fdaReason = i18n.T("需要完全磁盘访问")
 
 func protectedReason(r string) bool {
-	return strings.HasPrefix(r, "受保护") || strings.HasPrefix(r, "在白名单里")
+	return strings.HasPrefix(r, i18n.T("受保护")) || strings.HasPrefix(r, i18n.T("在白名单里"))
 }
 
 // categoryCard 一个类别：三态勾选框 + 图标 + 标题「已选 n/m」+ 说明 + 「已选大小 / 总大小」+ 展开。
@@ -186,22 +187,22 @@ func (m *Module) categoryCard(c *ui.Context, t kit.Theme, cat core.CategoryResul
 		}
 	}
 	ui.Column(c.Key("cat-"+cat.ID)).FillWidth().Radius(kit.RadiusL).Background(t.Surface).Border(1, ui.RGBA(255, 255, 255, 0.06)).Clip().Children(func() {
-		head := ui.ButtonBase(c.Key("head")).Label("展开 "+cat.Title).FillWidth().Height(68).Padding(0, 18).Gap(14).Justify(ui.Start)
+		head := ui.ButtonBase(c.Key("head")).Label(i18n.T("展开 ")+cat.Title).FillWidth().Height(68).Padding(0, 18).Gap(14).Justify(ui.Start)
 		if head.Hovered() {
 			head.Background(t.Hover)
 		}
 		head.OnClick(func() { m.expanded[cat.ID] = !open })
 		head.Children(func() {
-			kit.Check(c.Key("check"), t, "勾选 "+cat.Title, m.categoryState(cat), blue, selectableN == 0).OnClick(func() { m.toggleCategory(cat) })
+			kit.Check(c.Key("check"), t, i18n.T("勾选 ")+cat.Title, m.categoryState(cat), blue, selectableN == 0).OnClick(func() { m.toggleCategory(cat) })
 			ui.Icon(c, catIcons[cat.ID]).Size(20, 20).Shrink(0).TextColor(t.Muted)
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Baseline).Children(func() {
 					ui.Text(c, cat.Title).FontSize(kit.TextTitle).FontWeight(kit.WeightSemibold).SingleLine()
-					ui.Text(c, fmt.Sprintf("已选 %d/%d", picked, n)).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Faint).SingleLine()
+					ui.Text(c, fmt.Sprintf(i18n.T("已选 %d/%d"), picked, n)).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Faint).SingleLine()
 				})
 				note := catNotes[cat.ID]
 				if cat.Note != "" {
-					note += "（" + cat.Note + "）"
+					note += i18n.T("（") + cat.Note + i18n.T("）")
 				}
 				ui.Text(c, note).FontSize(kit.TextSecondary).TextColor(t.Muted).SingleLine().Ellipsis("…").FillWidth()
 			})
@@ -267,7 +268,7 @@ func (m *Module) groupRows(c *ui.Context, t kit.Theme, catID string, g itemGroup
 	key := "g:" + catID + ":" + g.name
 	open := m.expanded[key]
 	ui.Column(c.Key(key)).FillWidth().Gap(2).Children(func() {
-		head := ui.ButtonBase(c.Key("head")).Label("展开 "+g.name).FillWidth().Height(52).Padding(0, 12).Gap(12).Radius(kit.RadiusM).Justify(ui.Start)
+		head := ui.ButtonBase(c.Key("head")).Label(i18n.T("展开 ")+g.name).FillWidth().Height(52).Padding(0, 12).Gap(12).Radius(kit.RadiusM).Justify(ui.Start)
 		if head.Hovered() {
 			head.Background(t.Hover)
 		}
@@ -279,17 +280,17 @@ func (m *Module) groupRows(c *ui.Context, t kit.Theme, catID string, g itemGroup
 					n++
 				}
 			}
-			kit.Check(c.Key("check"), t, "勾选 "+g.name, m.itemsState(g.items), blue, n == 0).OnClick(func() { m.toggleItems(g.items) })
+			kit.Check(c.Key("check"), t, i18n.T("勾选 ")+g.name, m.itemsState(g.items), blue, n == 0).OnClick(func() { m.toggleItems(g.items) })
 			icon := chevRight
 			if open {
 				icon = chevDown
 			}
 			ui.Icon(c, icon).Size(kit.IconM, kit.IconM).Shrink(0).TextColor(t.Muted)
 			ui.Text(c, g.name).FontSize(kit.TextBody).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
-			ui.Text(c, fmt.Sprintf("%d 项", len(g.items))).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Faint).Shrink(0).SingleLine()
+			ui.Text(c, fmt.Sprintf(i18n.T("%d 项"), len(g.items))).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Faint).Shrink(0).SingleLine()
 			ui.Text(c, kit.HumanSize(g.size)).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).Width(76).Shrink(0).TextAlign(ui.End).SingleLine()
 			dir := commonDir(g.items)
-			kit.IconButton(c.Key("reveal"), t, "在 Finder 中显示", folderIcon, 26).Background(t.Surface).OnClick(func() { m.reveal(dir) })
+			kit.IconButton(c.Key("reveal"), t, i18n.T("在 Finder 中显示"), folderIcon, 26).Background(t.Surface).OnClick(func() { m.reveal(dir) })
 		})
 		if open {
 			ui.Column(c.Key("items")).FillWidth().Padding(0, 0, 0, 28).Gap(2).Children(func() {
@@ -329,7 +330,7 @@ func (m *Module) itemRow(c *ui.Context, t kit.Theme, it core.Item, title string)
 			state = kit.Checked
 		}
 		id := it.ID
-		kit.Check(c.Key("check"), t, "勾选 "+title, state, blue, !ok).OnClick(func() { m.sel[id] = !m.sel[id] })
+		kit.Check(c.Key("check"), t, i18n.T("勾选 ")+title, state, blue, !ok).OnClick(func() { m.sel[id] = !m.sel[id] })
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 			name := ui.Text(c, title).FontSize(kit.TextBody).SingleLine().Ellipsis("…").FillWidth()
 			if !ok {
@@ -341,17 +342,17 @@ func (m *Module) itemRow(c *ui.Context, t kit.Theme, it core.Item, title string)
 		case !ok:
 			label := it.Blocked
 			if protectedReason(label) || strings.HasPrefix(label, core.SystemBusy) {
-				label, _, _ = strings.Cut(label, "：") // 「受保护：……」只显示冒号前面，完整原因在提示里
+				label, _, _ = strings.Cut(label, i18n.T("：")) // 「受保护：……」只显示冒号前面，完整原因在提示里
 			}
 			// 其他原因（如「被 uv run 占用：my-mcp-server（PID …）」）整句显示，用户才知道该关哪个
 			tag(c, label, t.Muted).Tooltip(it.Blocked).MaxWidth(420).Ellipsis("…")
 			if it.Blocked == fdaReason {
-				m.settingsLink(c, "fda", "去设置")
+				m.settingsLink(c, "fda", i18n.T("去设置"))
 			}
 		case it.Uncertain || !it.Default:
-			tag(c, "需确认", orange).Tooltip(it.Note)
+			tag(c, i18n.T("需确认"), orange).Tooltip(it.Note)
 		case len(it.Command) > 0:
-			tag(c, "由 "+toolName(it.Command)+" 清理", t.Muted).Tooltip("调用工具自带的清理命令，实际释放可能少于显示")
+			tag(c, i18n.Tf("由 %s 清理", toolName(it.Command)), t.Muted).Tooltip(i18n.T("调用工具自带的清理命令，实际释放可能少于显示"))
 		}
 		size := kit.HumanSize(it.Size)
 		if it.SizeUnknown {
@@ -359,7 +360,7 @@ func (m *Module) itemRow(c *ui.Context, t kit.Theme, it core.Item, title string)
 		}
 		ui.Text(c, size).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).Width(76).Shrink(0).TextAlign(ui.End).SingleLine()
 		path := it.Path
-		kit.IconButton(c.Key("reveal"), t, "在 Finder 中显示", folderIcon, 26).Background(t.Surface).OnClick(func() { m.reveal(path) })
+		kit.IconButton(c.Key("reveal"), t, i18n.T("在 Finder 中显示"), folderIcon, 26).Background(t.Surface).OnClick(func() { m.reveal(path) })
 	})
 }
 
@@ -398,7 +399,7 @@ func (m *Module) bottomBar(c *ui.Context, t kit.Theme) {
 	sel := m.selected()
 	ui.Row(c.Key("bottom")).FillWidth().Height(bottomBarH).Shrink(0).Padding(0, kit.PageX).Gap(14).
 		Background(t.BgBottom.Alpha(0.92)).Border(1, ui.RGBA(255, 255, 255, 0.06)).BorderWidth(1, 0, 0, 0).Children(func() {
-		ui.Text(c, fmt.Sprintf("已选 %d 项", len(sel))).FontSize(kit.TextBody).FontWeight(kit.WeightSemibold).SingleLine()
+		ui.Text(c, fmt.Sprintf(i18n.T("已选 %d 项"), len(sel))).FontSize(kit.TextBody).FontWeight(kit.WeightSemibold).SingleLine()
 		link := func(label string, fn func()) {
 			b := ui.ButtonBase(c.Key("link-" + label)).Label(label).TextColor(blue).FontSize(kit.TextBody)
 			if b.Hovered() {
@@ -408,15 +409,15 @@ func (m *Module) bottomBar(c *ui.Context, t kit.Theme) {
 			b.OnClick(fn)
 		}
 		ui.Row(c).Gap(6).Children(func() {
-			link("全选", m.selectAll)
+			link(i18n.T("全选"), m.selectAll)
 			ui.Text(c, "·").TextColor(t.Faint)
-			link("清空", m.clearAll)
+			link(i18n.T("清空"), m.clearAll)
 			ui.Text(c, "·").TextColor(t.Faint)
-			link("推荐", m.recommend)
+			link(i18n.T("推荐"), m.recommend)
 		})
 		ui.Spacer(c)
-		label := "永久清理 · " + kit.HumanSize(sizeOf(sel))
-		b := ui.ButtonBase(c.Key("run")).Label("永久清理").Height(kit.ButtonL).Padding(0, 34).Radius(kit.ButtonL / 2).
+		label := i18n.T("永久清理 · ") + kit.HumanSize(sizeOf(sel))
+		b := ui.ButtonBase(c.Key("run")).Label(i18n.T("永久清理")).Height(kit.ButtonL).Padding(0, 34).Radius(kit.ButtonL / 2).
 			Background(white).TextColor(ink).Disabled(len(sel) == 0)
 		if len(sel) == 0 {
 			b.Opacity(0.4)
@@ -446,13 +447,13 @@ func (m *Module) confirmDialog(c *ui.Context, t kit.Theme) {
 	}
 	ui.Box(c.Key("confirm")).Absolute().Top(0).Left(0).Right(0).Bottom(0).Center().Children(func() {
 		// 遮罩：点遮罩等于取消
-		ui.ButtonBase(c.Key("scrim")).Label("取消清理").Absolute().Top(0).Left(0).Right(0).Bottom(0).
+		ui.ButtonBase(c.Key("scrim")).Label(i18n.T("取消清理")).Absolute().Top(0).Left(0).Right(0).Bottom(0).
 			Background(ui.RGBA(0, 0, 0, 0.55)).OnClick(func() { m.confirm = false })
 		// 对话框也脱离文档流，才会叠在（绝对定位的）遮罩上面
 		ui.Column(c.Key("dialog")).Attach(ui.AnchorCenter, ui.AnchorCenter).Width(460).Padding(26, 28).Gap(14).Radius(18).Background(ui.Hex("#1d2333")).
 			Border(1, ui.RGBA(255, 255, 255, 0.08)).Shadow(0, 20, 60, 0, ui.RGBA(0, 0, 0, 0.5)).Children(func() {
-			ui.Text(c, fmt.Sprintf("永久清理 %d 项？", len(sel))).FontSize(kit.TextLargeTitle).FontWeight(kit.WeightSemibold).SingleLine()
-			ui.Text(c, "将释放约 "+kit.HumanSize(sizeOf(sel))).Font(kit.Mono).FontSize(kit.TextTitle).TextColor(blue).SingleLine()
+			ui.Text(c, fmt.Sprintf(i18n.T("永久清理 %d 项？"), len(sel))).FontSize(kit.TextLargeTitle).FontWeight(kit.WeightSemibold).SingleLine()
+			ui.Text(c, i18n.T("将释放约 ")+kit.HumanSize(sizeOf(sel))).Font(kit.Mono).FontSize(kit.TextTitle).TextColor(blue).SingleLine()
 			line := func(text string, color ui.Color) {
 				ui.Row(c).FillWidth().Gap(8).AlignItems(ui.Start).Children(func() {
 					ui.Text(c, "•").FontSize(kit.TextBody).TextColor(color).Shrink(0)
@@ -460,8 +461,8 @@ func (m *Module) confirmDialog(c *ui.Context, t kit.Theme) {
 				})
 			}
 			ui.Column(c).FillWidth().Gap(8).Margin(4, 0, 6, 0).Children(func() {
-				line(fmt.Sprintf("永久删除 %d 项（%s）：都是可以重新生成的缓存，不进废纸篓，删除后无法恢复。", len(perm), kit.HumanSize(sizeOf(perm))), t.Text)
-				line(fmt.Sprintf("移到废纸篓 %d 项（%s）。", len(trash), kit.HumanSize(sizeOf(trash))), t.Muted)
+				line(fmt.Sprintf(i18n.T("永久删除 %d 项（%s）：都是可以重新生成的缓存，不进废纸篓，删除后无法恢复。"), len(perm), kit.HumanSize(sizeOf(perm))), t.Text)
+				line(fmt.Sprintf(i18n.T("移到废纸篓 %d 项（%s）。"), len(trash), kit.HumanSize(sizeOf(trash))), t.Muted)
 				if len(tools) > 0 {
 					names := []string{}
 					for _, it := range tools {
@@ -469,16 +470,16 @@ func (m *Module) confirmDialog(c *ui.Context, t kit.Theme) {
 							names = append(names, n)
 						}
 					}
-					line(fmt.Sprintf("其中 %d 项交给 %s 自己清理，实际释放可能少于显示。", len(tools), strings.Join(names, "、")), t.Muted)
+					line(fmt.Sprintf(i18n.T("其中 %d 项交给 %s 自己清理，实际释放可能少于显示。"), len(tools), strings.Join(names, i18n.T("、"))), t.Muted)
 				}
 				if emptyTrash {
-					line("包括清空废纸篓：里面的文件会被永久删除。", orange)
+					line(i18n.T("包括清空废纸篓：里面的文件会被永久删除。"), orange)
 				}
-				line("清理时相关 app 如果正在运行，会自动跳过；过程中可以取消，当前这一项做完就停。", t.Muted)
+				line(i18n.T("清理时相关 app 如果正在运行，会自动跳过；过程中可以取消，当前这一项做完就停。"), t.Muted)
 			})
 			ui.Row(c).FillWidth().Gap(10).Justify(ui.End).Children(func() {
-				kit.PillButton(c.Key("no"), t, "取消", false).OnClick(func() { m.confirm = false })
-				kit.PillButton(c.Key("yes"), t, "永久清理", true).Label("确认永久清理").OnClick(m.startRun)
+				kit.PillButton(c.Key("no"), t, i18n.T("取消"), false).OnClick(func() { m.confirm = false })
+				kit.PillButton(c.Key("yes"), t, i18n.T("永久清理"), true).Label(i18n.T("确认永久清理")).OnClick(m.startRun)
 			})
 		})
 	})

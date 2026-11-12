@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"vole/internal/i18n"
 	"vole/internal/kit"
 )
 
@@ -39,7 +40,7 @@ var (
 const Dash = "—"
 
 // Waiting 是慢指标还没到时的提示。
-const Waiting = "采集中…"
+var Waiting = i18n.T("采集中…")
 
 // Size 是卡片的尺寸档。
 type Size struct {

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"vole/internal/i18n"
 )
 
 // 打包二进制的文件名与开发期覆盖用的环境变量。
@@ -25,7 +26,7 @@ type NotFoundError struct {
 }
 
 func (e *NotFoundError) Error() string {
-	return fmt.Sprintf("找不到 %s 二进制，已查找：%s", e.Name, strings.Join(e.Tried, "；"))
+	return fmt.Sprintf(i18n.T("找不到 %s 二进制，已查找：%s"), e.Name, strings.Join(e.Tried, i18n.T("；")))
 }
 
 // Locate 返回可执行二进制的绝对路径。
@@ -55,7 +56,7 @@ func locate(name, envVar, env, exe string) (string, error) {
 		}
 		tried = append(tried, p)
 	}
-	tried = append(tried, envVar+"（未设置）")
+	tried = append(tried, envVar+i18n.T("（未设置）"))
 	return "", &NotFoundError{Name: name, Tried: tried}
 }
 

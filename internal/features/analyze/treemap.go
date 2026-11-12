@@ -5,6 +5,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/kit/treemap"
 )
@@ -55,7 +56,7 @@ func blocks(items []item) []block {
 		rest.it.size += it.size
 	}
 	if rest.other > 0 {
-		rest.it.name = fmt.Sprintf("其他 %d 项", rest.other)
+		rest.it.name = fmt.Sprintf(i18n.T("其他 %d 项"), rest.other)
 		out = append(out, rest)
 	}
 	return out
@@ -101,7 +102,7 @@ func (m *Module) block(c *ui.Context, t kit.Theme, bl block, color ui.Color, x, 
 	if bl.other > 0 {
 		key = "other"
 	}
-	e := ui.ButtonBase(c.Key("block-" + key)).Label("块 " + it.name).Absolute().Left(x).Top(y).Width(w).Height(h).
+	e := ui.ButtonBase(c.Key("block-" + key)).Label(i18n.T("块 ") + it.name).Absolute().Left(x).Top(y).Width(w).Height(h).
 		Radius(min(kit.RadiusM, w/4, h/4)).Background(color).Clip().Center().Tooltip(it.name + "  " + blockSize(c, m, it))
 	if it.pending {
 		e.Background(color.Alpha(0.55)) // 计算中：半透明，和已出结果的块区分开
@@ -138,7 +139,7 @@ func (m *Module) block(c *ui.Context, t kit.Theme, bl block, color ui.Color, x, 
 // blockSize 是块上的第二行：计算中显示已用时，否则显示大小。
 func blockSize(c *ui.Context, m *Module, it item) string {
 	if it.pending {
-		return "计算中 · " + m.elapsed(c, it.started)
+		return i18n.T("计算中 · ") + m.elapsed(c, it.started)
 	}
 	return sizeLabel(it.size, it.status)
 }

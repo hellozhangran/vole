@@ -21,6 +21,7 @@ import (
 	"vole/internal/core/fsops"
 	core "vole/internal/core/status"
 	ui2 "vole/internal/features/statusui"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/task"
 )
@@ -239,18 +240,18 @@ func healthScore(s *core.Snapshot) int {
 func (p *Panel) diagnosis(s *core.Snapshot) string {
 	switch {
 	case p.snap == nil && p.err != nil:
-		return "状态组件不可用"
+		return i18n.T("状态组件不可用")
 	case p.snap == nil:
 		return ui2.Waiting
 	}
 	level, issues := ui2.HealthText(s.HealthNote)
 	text := level
 	if _, tail, _ := strings.Cut(s.HealthNote, ":"); strings.TrimSpace(tail) != "" {
-		text, _, _ = strings.Cut(issues, "，")
+		text, _, _ = strings.Cut(issues, i18n.T("，"))
 	}
 	if len(s.Disks) > 0 {
 		d := s.Disks[0]
-		free := kit.HumanSize(int64(d.Total-min(d.Used, d.Total))) + " 可用"
+		free := kit.HumanSize(int64(d.Total-min(d.Used, d.Total))) + i18n.T(" 可用")
 		if text == "" {
 			return free
 		}
@@ -275,7 +276,7 @@ func tags(s *core.Snapshot) []string {
 		out = append(out, s.OS)
 	}
 	if s.Uptime > 0 {
-		out = append(out, "已运行 "+ui2.UptimeText(s.Uptime))
+		out = append(out, i18n.T("已运行 ")+ui2.UptimeText(s.Uptime))
 	}
 	return out
 }
@@ -291,7 +292,7 @@ func (p *Panel) cpuCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 		ui2.Value(c, t, ui2.Compact, fmt.Sprintf("%.0f", s.CPU.Usage), "%", "")
 		cores := s.CPU.PerCore
 		ui2.Chart(c, func(pt *ui.Painter, r ui.Rect) { ui2.Bars(pt, r, cores, ui2.Green) })
-		ui2.Footer(c, t, busyText(s.CPU), fmt.Sprintf("负载 %.1f/%d", s.CPU.Load1, s.CPU.Cores))
+		ui2.Footer(c, t, busyText(s.CPU), fmt.Sprintf(i18n.T("负载 %.1f/%d"), s.CPU.Load1, s.CPU.Cores))
 	})
 }
 
@@ -303,15 +304,15 @@ func busyText(cpu core.CPU) string {
 	r := cpu.Load1 / float64(cpu.Cores)
 	switch {
 	case r >= 1:
-		return "繁忙"
+		return i18n.T("繁忙")
 	case r >= 0.5:
-		return "适中"
+		return i18n.T("适中")
 	}
-	return "空闲"
+	return i18n.T("空闲")
 }
 
 func (p *Panel) memCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
-	ui2.Card(c, t, ui2.Compact, "mem", ui2.MemIcon, "内存", ui2.PressureTag(s.Memory.Pressure), 1, func() {
+	ui2.Card(c, t, ui2.Compact, "mem", ui2.MemIcon, i18n.T("内存"), ui2.PressureTag(s.Memory.Pressure), 1, func() {
 		if p.snap == nil {
 			waitingBody(c, t)
 			return
@@ -319,21 +320,21 @@ func (p *Panel) memCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 		ui2.Value(c, t, ui2.Compact, fmt.Sprintf("%.0f", s.Memory.UsedPercent), "%", "")
 		hist := p.memHist
 		ui2.Chart(c, func(pt *ui.Painter, r ui.Rect) { ui2.Area(pt, r, hist, historyLen, 100, ui2.Gold) })
-		ui2.Footer(c, t, "交换空间 "+kit.HumanSize(int64(s.Memory.SwapUsed)))
+		ui2.Footer(c, t, i18n.T("交换空间 ")+kit.HumanSize(int64(s.Memory.SwapUsed)))
 	})
 }
 
 func (p *Panel) diskCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 	if len(s.Disks) == 0 {
-		ui2.Card(c, t, ui2.Compact, "disk", ui2.DiskIcon, "磁盘", "", 1, func() { waitingBody(c, t) })
+		ui2.Card(c, t, ui2.Compact, "disk", ui2.DiskIcon, i18n.T("磁盘"), "", 1, func() { waitingBody(c, t) })
 		return
 	}
 	d := s.Disks[0]
-	ui2.Card(c, t, ui2.Compact, "disk", ui2.DiskIcon, "磁盘", kit.HumanSize(int64(d.Total)), 1, func() {
+	ui2.Card(c, t, ui2.Compact, "disk", ui2.DiskIcon, i18n.T("磁盘"), kit.HumanSize(int64(d.Total)), 1, func() {
 		ui2.Value(c, t, ui2.Compact, fmt.Sprintf("%.0f", d.UsedPercent), "%", "")
 		frac := d.UsedPercent / 100
 		ui2.Chart(c, func(pt *ui.Painter, r ui.Rect) { ui2.UsageBar(pt, r, frac) })
-		ui2.Footer(c, t, "可用 "+kit.HumanSize(int64(d.Total-min(d.Used, d.Total))))
+		ui2.Footer(c, t, i18n.T("可用 ")+kit.HumanSize(int64(d.Total-min(d.Used, d.Total))))
 	})
 }
 
@@ -347,7 +348,7 @@ func (p *Panel) netCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 			name = i.Name
 		}
 	}
-	ui2.Card(c, t, ui2.Compact, "net", ui2.NetIcon, "网络", connType(name, p.ports), 1, func() {
+	ui2.Card(c, t, ui2.Compact, "net", ui2.NetIcon, i18n.T("网络"), connType(name, p.ports), 1, func() {
 		if p.snap == nil {
 			waitingBody(c, t)
 			return
@@ -367,7 +368,7 @@ func connType(dev string, ports map[string]string) string {
 	case port == "Wi-Fi":
 		return "Wi-Fi"
 	case strings.Contains(port, "Ethernet") || strings.Contains(port, "LAN"):
-		return "以太网"
+		return i18n.T("以太网")
 	case port != "":
 		return port
 	}
@@ -400,9 +401,9 @@ func (p *Panel) batteryCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 	}
 	tag := ""
 	if b != nil && b.Capacity > 0 {
-		tag = fmt.Sprintf("健康 %d%%", b.Capacity)
+		tag = fmt.Sprintf(i18n.T("健康 %d%%"), b.Capacity)
 	}
-	ui2.Card(c, t, ui2.Compact, "battery", ui2.BatteryIcon, "电池", tag, 1, func() {
+	ui2.Card(c, t, ui2.Compact, "battery", ui2.BatteryIcon, i18n.T("电池"), tag, 1, func() {
 		if b == nil {
 			waitingBody(c, t)
 			return
@@ -413,7 +414,7 @@ func (p *Panel) batteryCard(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 				ui.Spacer(c)
 				top := ""
 				if procs := topProcs(s.TopProcs, 1); len(procs) > 0 {
-					top = fmt.Sprintf("CPU 最高 %s %.1f%%", procs[0].Name, procs[0].CPU)
+					top = fmt.Sprintf(i18n.T("CPU 最高 %s %.1f%%"), procs[0].Name, procs[0].CPU)
 				}
 				ui2.Footer(c, t, top)
 			})
@@ -437,10 +438,10 @@ func (p *Panel) procs(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 		Radius(kit.RadiusL).Background(ui2.CardBG).Border(1, ui2.CardBorder).Children(func() {
 		ui.Row(c).FillWidth().Height(18).Gap(8).Children(func() {
 			ui.Icon(c, ui2.ProcIcon).Size(kit.IconM, kit.IconM).Shrink(0).TextColor(t.Muted)
-			ui.Text(c, "高占用进程").FontSize(kit.TextSecondary).FontWeight(kit.WeightSemibold).LetterSpacing(2).TextColor(t.Muted).SingleLine()
+			ui.Text(c, i18n.T("高占用进程")).FontSize(kit.TextSecondary).FontWeight(kit.WeightSemibold).LetterSpacing(2).TextColor(t.Muted).SingleLine()
 			ui.Spacer(c)
 			ui.Text(c, "CPU").FontSize(kit.TextCaption).TextColor(t.Faint).Width(cpuW).TextAlign(ui.End).SingleLine()
-			ui.Text(c, "内存").FontSize(kit.TextCaption).TextColor(t.Faint).Width(memW).TextAlign(ui.End).SingleLine()
+			ui.Text(c, i18n.T("内存")).FontSize(kit.TextCaption).TextColor(t.Faint).Width(memW).TextAlign(ui.End).SingleLine()
 		})
 		list := topProcs(s.TopProcs, topN)
 		if len(list) == 0 {
@@ -449,7 +450,7 @@ func (p *Panel) procs(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 		}
 		ui.Column(c).FillWidth().Children(func() { // 行之间不留间距，行高已经够
 			for _, pr := range list {
-				b := ui.ButtonBase(c.Key(fmt.Sprint("proc-", pr.PID))).Label("查看进程 "+pr.Name).FillWidth().Height(procRowH).
+				b := ui.ButtonBase(c.Key(fmt.Sprint("proc-", pr.PID))).Label(i18n.T("查看进程 ")+pr.Name).FillWidth().Height(procRowH).
 					Padding(0, 6).Margin(0, -6).Gap(8).Radius(kit.RadiusS).Justify(ui.Start)
 				if b.Hovered() {
 					b.Background(t.Hover)
@@ -470,11 +471,11 @@ func (p *Panel) tools(c *ui.Context, t kit.Theme) {
 	ui.Column(c.Key("tools")).FillWidth().Shrink(0).Padding(10, ui2.Compact.PadX).
 		Radius(kit.RadiusL).Background(ui2.CardBG).Border(1, ui2.CardBorder).Children(func() {
 		ui.Row(c).FillWidth().Height(buttonH).Gap(6).Children(func() {
-			p.iconButton(c, t, "open", openIcon, "打开 Vole", false, false, func() { p.o.Host.ShowMain("") })
-			p.iconButton(c, t, "clean", cleanIcon, "扫描清理", false, false, func() { p.o.Host.ShowMain("clean") })
+			p.iconButton(c, t, "open", openIcon, i18n.T("打开 Vole"), false, false, func() { p.o.Host.ShowMain("") })
+			p.iconButton(c, t, "clean", cleanIcon, i18n.T("扫描清理"), false, false, func() { p.o.Host.ShowMain("clean") })
 			ui.Spacer(c)
 			p.loginButton(c, t)
-			p.iconButton(c, t, "quit", quitIcon, "退出 Vole", false, false, p.o.Host.Quit)
+			p.iconButton(c, t, "quit", quitIcon, i18n.T("退出 Vole"), false, false, p.o.Host.Quit)
 		})
 		if p.loginErr != "" {
 			ui.Text(c, p.loginErr).FontSize(kit.TextCaption).TextColor(ui2.Red).Height(errLineH).SingleLine().Ellipsis("…").FillWidth()
@@ -483,9 +484,9 @@ func (p *Panel) tools(c *ui.Context, t kit.Theme) {
 			ui.Box(c).FillWidth().Height(1).Margin(8, 0).Background(ui.RGBA(255, 255, 255, 0.06))
 			ui.Row(c.Key("observe")).FillWidth().Height(18).Gap(6).Children(func() {
 				ui.Icon(c, sparkleIcon).Size(kit.IconM, kit.IconM).Shrink(0).TextColor(ui2.Teal)
-				ui.Text(c, "清理观察").FontSize(kit.TextSecondary).FontWeight(kit.WeightSemibold).TextColor(t.Muted).SingleLine()
+				ui.Text(c, i18n.T("清理观察")).FontSize(kit.TextSecondary).FontWeight(kit.WeightSemibold).TextColor(t.Muted).SingleLine()
 				ui.Spacer(c)
-				ui.Text(c, fmt.Sprintf("已清出 %s · 共 %d 次", kit.HumanSize(p.freed.Bytes), p.freed.Times)).
+				ui.Text(c, fmt.Sprintf(i18n.T("已清出 %s · 共 %d 次"), kit.HumanSize(p.freed.Bytes), p.freed.Times)).
 					Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).SingleLine()
 			})
 		}
@@ -520,17 +521,17 @@ func (p *Panel) iconButton(c *ui.Context, t kit.Theme, key string, icon *ui.SVG,
 func (p *Panel) loginButton(c *ui.Context, t kit.Theme) {
 	disabled := p.o.Login.Disabled != "" || p.o.Login.Set == nil
 	on := p.loginOn && !disabled
-	tip := "开机时启动：未开启"
+	tip := i18n.T("开机时启动：未开启")
 	switch {
 	case disabled:
-		tip = "开机时启动：" + p.o.Login.Disabled
+		tip = i18n.T("开机时启动：") + p.o.Login.Disabled
 	case on:
-		tip = "开机时启动：已开启"
+		tip = i18n.T("开机时启动：已开启")
 	}
 	p.iconButton(c, t, "login", loginIcon, tip, on, disabled, func() {
 		want := !p.loginOn
 		if err := p.o.Login.Set(want); err != nil {
-			p.loginErr = "开机时启动设置失败：" + err.Error()
+			p.loginErr = i18n.T("开机时启动设置失败：") + err.Error()
 			return
 		}
 		p.loginErr = ""

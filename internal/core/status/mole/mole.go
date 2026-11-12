@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"vole/internal/core/status"
+	"vole/internal/i18n"
 )
 
 // Source 调用 status 二进制。Binary 为绝对路径，由 binloc 定位。
@@ -45,7 +46,7 @@ func (s *Source) Watch(ctx context.Context, interval time.Duration, emit func(st
 		return err
 	}
 	if err := cmd.Start(); err != nil {
-		return &status.ExitError{ExitCode: -1, Err: fmt.Errorf("%w：%w", status.ErrUnavailable, err)}
+		return &status.ExitError{ExitCode: -1, Err: fmt.Errorf(i18n.T("%w：%w"), status.ErrUnavailable, err)}
 	}
 
 	frames, bad := 0, 0
@@ -86,10 +87,10 @@ func (s *Source) Watch(ctx context.Context, interval time.Duration, emit func(st
 		e.ExitCode = exitErr.ExitCode()
 	case waitErr != nil:
 		// 被信号杀掉（如签名校验失败）：采集器本身坏了
-		e.Err = fmt.Errorf("%w：%w", status.ErrUnavailable, waitErr)
+		e.Err = fmt.Errorf(i18n.T("%w：%w"), status.ErrUnavailable, waitErr)
 	default:
 		e.ExitCode = 0
-		e.Err = errors.New("进程自行退出")
+		e.Err = errors.New(i18n.T("进程自行退出"))
 	}
 	return e
 }

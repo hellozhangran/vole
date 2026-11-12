@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	ui2 "vole/internal/features/statusui"
+	"vole/internal/i18n"
 
 	"github.com/egoist/mygo/ui"
 
@@ -59,10 +60,10 @@ func (m *Module) procTable(c *ui.Context, t kit.Theme) {
 	ui.Column(c.Key("procs")).Grow(1).FillWidth().MinHeight(0).Radius(kit.RadiusL).Background(ui2.CardBG).Border(1, ui2.CardBorder).Clip().Children(func() {
 		ui.Row(c.Key("thead")).FillWidth().Height(32).Shrink(0).Padding(0, 16).Gap(8).
 			Border(1, ui2.CardBorder).BorderWidth(0, 0, 1, 0).Children(func() {
-			m.th(c, t, fmt.Sprintf("名称（%d）", len(m.pt.list)), byName, 0, false)
+			m.th(c, t, fmt.Sprintf(i18n.T("名称（%d）"), len(m.pt.list)), byName, 0, false)
 			m.th(c, t, "PID", byPID, colPID, true)
 			m.th(c, t, "CPU", byCPU, colCPU, true)
-			m.th(c, t, "内存", byMem, colMem, true)
+			m.th(c, t, i18n.T("内存"), byMem, colMem, true)
 			ui.Box(c).Width(colMore).Shrink(0)
 		})
 		ui.Scroll(c.Key("tbody")).Grow(1).FillWidth().MinHeight(0).Children(func() {
@@ -70,7 +71,7 @@ func (m *Module) procTable(c *ui.Context, t kit.Theme) {
 				if len(m.pt.list) == 0 {
 					msg := ui2.Waiting
 					if m.pt.err != nil {
-						msg = "读取进程列表失败：" + m.pt.err.Error()
+						msg = i18n.T("读取进程列表失败：") + m.pt.err.Error()
 					}
 					ui.Text(c, msg).FontSize(kit.TextSecondary).TextColor(t.Faint).Padding(12, 16)
 					return
@@ -85,7 +86,7 @@ func (m *Module) procTable(c *ui.Context, t kit.Theme) {
 
 // th 是可点击排序的表头格；当前排序列显示方向箭头。width 为 0 表示占满剩余宽度。
 func (m *Module) th(c *ui.Context, t kit.Theme, label string, col sortCol, width float32, right bool) {
-	b := ui.ButtonBase(c.Key(fmt.Sprint("th-", col))).Label("按" + strings.Split(label, "（")[0] + "排序").Height(32).Gap(4).TextColor(t.Faint)
+	b := ui.ButtonBase(c.Key(fmt.Sprint("th-", col))).Label(i18n.Tf("按%s排序", strings.Split(label, i18n.T("（"))[0])).Height(32).Gap(4).TextColor(t.Faint)
 	if width > 0 {
 		b.Width(width).Shrink(0)
 	} else {
@@ -115,7 +116,7 @@ func (m *Module) th(c *ui.Context, t kit.Theme, label string, col sortCol, width
 // procRow 一行进程。持续高 CPU 的行左侧加色条、数值变色（黄 / 红两档，阈值见 procs.go）。
 func (m *Module) procRow(c *ui.Context, t kit.Theme, p procs.Proc) {
 	name, sub := displayName(p)
-	row := ui.Row(c.Key(keyOf(p))).Label("进程 "+p.Name).FillWidth().Height(kit.RowTable).Padding(0, 16).Gap(8)
+	row := ui.Row(c.Key(keyOf(p))).Label(i18n.T("进程 ")+p.Name).FillWidth().Height(kit.RowTable).Padding(0, 16).Gap(8)
 	if row.Hovered() {
 		row.Background(t.Hover)
 	}
@@ -144,7 +145,7 @@ func (m *Module) procRow(c *ui.Context, t kit.Theme, p procs.Proc) {
 				ui.Text(c, sub).Font(kit.Mono).FontSize(kit.TextCaption).TextColor(t.Faint).SingleLine().Ellipsis("…").MinWidth(0)
 			}
 			if m.pinned(p) {
-				ui.Icon(c, pinIcon).Size(kit.IconS, kit.IconS).Shrink(0).TextColor(t.Accent).Tooltip("已固定在顶部")
+				ui.Icon(c, pinIcon).Size(kit.IconS, kit.IconS).Shrink(0).TextColor(t.Accent).Tooltip(i18n.T("已固定在顶部"))
 			}
 		})
 		ui.Text(c, fmt.Sprint(p.PID)).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).Width(colPID).Shrink(0).TextAlign(ui.End).SingleLine()
@@ -160,7 +161,7 @@ func (m *Module) procRow(c *ui.Context, t kit.Theme, p procs.Proc) {
 			mem = kit.HumanSize(int64(p.MemBytes))
 		}
 		ui.Text(c, mem).Font(kit.Mono).FontSize(kit.TextSecondary).TextColor(t.Muted).Width(colMem).Shrink(0).TextAlign(ui.End).SingleLine()
-		more := ui.ButtonBase(c.Key("more")).Label("操作 "+p.Name).Size(colMore, 24).Shrink(0).Radius(kit.RadiusS).TextColor(t.Muted)
+		more := ui.ButtonBase(c.Key("more")).Label(i18n.T("操作 ")+p.Name).Size(colMore, 24).Shrink(0).Radius(kit.RadiusS).TextColor(t.Muted)
 		if more.Hovered() {
 			more.Background(t.Hover).TextColor(t.Text)
 		}

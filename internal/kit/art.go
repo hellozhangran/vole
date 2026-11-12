@@ -3,6 +3,7 @@ package kit
 import (
 	"embed"
 	"sync"
+	"vole/internal/i18n"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -36,11 +37,11 @@ func artBitmap(name ArtName) *ui.Bitmap {
 	}
 	data, err := artFS.ReadFile("art/" + string(name) + ".png")
 	if err != nil {
-		panic("kit: 没有插画 " + string(name))
+		panic(i18n.T("kit: 没有插画 ") + string(name))
 	}
 	b, err := ui.DecodeBitmap(data)
 	if err != nil {
-		panic("kit: 插画解码失败 " + string(name) + ": " + err.Error())
+		panic(i18n.T("kit: 插画解码失败 ") + string(name) + ": " + err.Error())
 	}
 	artCache.Store(name, b)
 	return b

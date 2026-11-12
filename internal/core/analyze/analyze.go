@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"vole/internal/i18n"
 )
 
 // Status 表示一次测量是否完整。
@@ -60,11 +61,11 @@ type Source interface {
 }
 
 // ErrPathNotFound 表示要扫描的路径不存在。
-var ErrPathNotFound = errors.New("路径不存在")
+var ErrPathNotFound = errors.New(i18n.T("路径不存在"))
 
 // ErrScannerUnavailable 表示扫描器本身不可用：二进制缺失、无法执行、格式损坏或被系统杀掉。
 // 和「某个路径扫失败」不同，它对所有路径都会失败，UI 应整体提示。
-var ErrScannerUnavailable = errors.New("分析组件不可用")
+var ErrScannerUnavailable = errors.New(i18n.T("分析组件不可用"))
 
 // ScanError 表示扫描器本身失败（非零退出、输出无法解析等）。
 type ScanError struct {
@@ -74,14 +75,14 @@ type ScanError struct {
 }
 
 func (e *ScanError) Error() string {
-	msg := "扫描失败"
+	msg := i18n.T("扫描失败")
 	if e.ExitCode >= 0 {
-		msg += fmt.Sprintf("（退出码 %d）", e.ExitCode)
+		msg += fmt.Sprintf(i18n.T("（退出码 %d）"), e.ExitCode)
 	}
 	if e.Stderr != "" {
-		msg += "：" + e.Stderr
+		msg += i18n.T("：") + e.Stderr
 	} else if e.Err != nil {
-		msg += "：" + e.Err.Error()
+		msg += i18n.T("：") + e.Err.Error()
 	}
 	return msg
 }

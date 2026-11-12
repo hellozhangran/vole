@@ -10,6 +10,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/module"
 	"vole/internal/task"
@@ -146,7 +147,7 @@ func Run(opts Options) error {
 		})
 		if err := s.startMenuBar(&quitting); err != nil {
 			// 菜单栏起不来时退回普通窗口 app：关窗就退出
-			fmt.Fprintln(os.Stderr, "菜单栏图标创建失败：", err)
+			fmt.Fprintln(os.Stderr, i18n.T("菜单栏图标创建失败："), err)
 			s.noMenuBar = true
 		}
 	})
@@ -330,7 +331,7 @@ var logoPNG []byte
 var logoBitmap = func() *ui.Bitmap {
 	b, err := ui.DecodeBitmap(logoPNG)
 	if err != nil {
-		panic("shell: logo.png 解码失败: " + err.Error())
+		panic(i18n.T("shell: logo.png 解码失败: ") + err.Error())
 	}
 	return b
 }()

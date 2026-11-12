@@ -8,6 +8,7 @@ package fsops
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"vole/internal/i18n"
 
 	"golang.org/x/sys/unix"
 )
@@ -44,7 +46,7 @@ func moveToTrashViaFilesystem(env TrashEnv, absPath string) error {
 	}
 	base := filepath.Base(absPath)
 	if base == "." || base == string(filepath.Separator) || base == "" {
-		return fmt.Errorf("废纸篓里的名字不合法")
+		return errors.New(i18n.T("废纸篓里的名字不合法"))
 	}
 	stamp := env.Now().UnixNano()
 	for attempt := range 100 {
@@ -57,20 +59,20 @@ func moveToTrashViaFilesystem(env TrashEnv, absPath string) error {
 			return nil
 		}
 		if err != syscall.EEXIST {
-			return fmt.Errorf("移到废纸篓失败：%w", err)
+			return fmt.Errorf(i18n.T("移到废纸篓失败：%w"), err)
 		}
 	}
-	return fmt.Errorf("废纸篓里找不到不重名的名字")
+	return errors.New(i18n.T("废纸篓里找不到不重名的名字"))
 }
 
 // trashDirectoryForPath：和家目录同一个卷就用 ~/.Trash，否则用卷上的 .Trashes/<uid>。
 func trashDirectoryForPath(env TrashEnv, absPath string) (string, error) {
 	var pathFS, homeFS unix.Statfs_t
 	if err := unix.Statfs(absPath, &pathFS); err != nil {
-		return "", fmt.Errorf("读不到所在磁盘：%w", err)
+		return "", fmt.Errorf(i18n.T("读不到所在磁盘：%w"), err)
 	}
 	if err := unix.Statfs(env.Home, &homeFS); err != nil {
-		return "", fmt.Errorf("读不到家目录所在磁盘：%w", err)
+		return "", fmt.Errorf(i18n.T("读不到家目录所在磁盘：%w"), err)
 	}
 	if pathFS.Fsid == homeFS.Fsid {
 		dir := filepath.Join(env.Home, ".Trash")
@@ -78,15 +80,15 @@ func trashDirectoryForPath(env TrashEnv, absPath string) (string, error) {
 	}
 	mount := strings.TrimRight(string(pathFS.Mntonname[:]), "\x00")
 	if mount == "" {
-		return "", fmt.Errorf("所在磁盘没有挂载点")
+		return "", errors.New(i18n.T("所在磁盘没有挂载点"))
 	}
 	root := filepath.Join(mount, ".Trashes")
 	info, err := os.Lstat(root)
 	if err != nil {
-		return "", fmt.Errorf("这个磁盘的废纸篓不可用：%w", err)
+		return "", fmt.Errorf(i18n.T("这个磁盘的废纸篓不可用：%w"), err)
 	}
 	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-		return "", fmt.Errorf("这个磁盘的废纸篓不是普通目录")
+		return "", errors.New(i18n.T("这个磁盘的废纸篓不是普通目录"))
 	}
 	dir := filepath.Join(root, fmt.Sprint(os.Getuid()))
 	return dir, ensureOwnedTrashDirectory(dir, true)
@@ -96,22 +98,22 @@ func ensureOwnedTrashDirectory(p string, create bool) error {
 	info, err := os.Lstat(p)
 	if os.IsNotExist(err) && create {
 		if err := os.Mkdir(p, 0o700); err != nil {
-			return fmt.Errorf("创建废纸篓目录失败：%w", err)
+			return fmt.Errorf(i18n.T("创建废纸篓目录失败：%w"), err)
 		}
 		info, err = os.Lstat(p)
 	}
 	if err != nil {
-		return fmt.Errorf("读不到废纸篓目录：%w", err)
+		return fmt.Errorf(i18n.T("读不到废纸篓目录：%w"), err)
 	}
 	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-		return fmt.Errorf("废纸篓不是普通目录")
+		return errors.New(i18n.T("废纸篓不是普通目录"))
 	}
 	st, ok := info.Sys().(*syscall.Stat_t)
 	if !ok || st.Uid != uint32(os.Getuid()) {
-		return fmt.Errorf("废纸篓不属于当前用户")
+		return errors.New(i18n.T("废纸篓不属于当前用户"))
 	}
 	if info.Mode().Perm()&0o022 != 0 {
-		return fmt.Errorf("废纸篓可被其他用户写入")
+		return errors.New(i18n.T("废纸篓可被其他用户写入"))
 	}
 	return nil
 }
@@ -131,9 +133,9 @@ func MoveToTrashViaFinderWithin(ctx context.Context, absPath string, wait time.D
 		fmt.Sprintf(`tell application "Finder" to delete POSIX file "%s"`, escaped)).CombinedOutput()
 	if err != nil {
 		if ctx.Err() != nil {
-			return fmt.Errorf("移到废纸篓超时")
+			return errors.New(i18n.T("移到废纸篓超时"))
 		}
-		return fmt.Errorf("移到废纸篓失败：%s", strings.TrimSpace(string(out)))
+		return fmt.Errorf(i18n.T("移到废纸篓失败：%s"), strings.TrimSpace(string(out)))
 	}
 	return nil
 }

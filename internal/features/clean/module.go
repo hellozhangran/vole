@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo"
 
 	core "vole/internal/core/clean"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/module"
 	"vole/internal/task"
@@ -117,7 +118,7 @@ func New(be Backend) *Module {
 }
 
 func (m *Module) ID() string         { return "clean" }
-func (m *Module) Title() string      { return "清理" }
+func (m *Module) Title() string      { return i18n.T("清理") }
 func (m *Module) Theme() kit.Theme   { return m.theme }
 func (m *Module) Init(h module.Host) { m.tasks = h.Tasks() }
 

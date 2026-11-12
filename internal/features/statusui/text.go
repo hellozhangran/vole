@@ -6,16 +6,17 @@ import (
 	"time"
 
 	core "vole/internal/core/status"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 )
 
 // 健康度文案：status 输出 "Good: High CPU, Disk Almost Full"，这里只把它的固定词表翻成中文，认不出的原样显示。
-var healthLevels = map[string]string{"Excellent": "优秀", "Good": "良好", "Fair": "一般", "Needs Attention": "需要关注"}
+var healthLevels = map[string]string{"Excellent": i18n.T("优秀"), "Good": i18n.T("良好"), "Fair": i18n.T("一般"), "Needs Attention": i18n.T("需要关注")}
 var healthIssues = map[string]string{
-	"High CPU": "CPU 负载偏高", "High Memory": "内存占用偏高", "Memory Pressure": "内存压力大",
-	"Critical Memory": "内存严重不足", "Disk Almost Full": "磁盘快满了", "Disk SMART Failing": "磁盘 SMART 异常",
-	"Overheating": "温度过高", "Heavy Disk IO": "磁盘读写繁重", "Battery Service Soon": "电池需要维修",
-	"Restart Recommended": "建议重启",
+	"High CPU": i18n.T("CPU 负载偏高"), "High Memory": i18n.T("内存占用偏高"), "Memory Pressure": i18n.T("内存压力大"),
+	"Critical Memory": i18n.T("内存严重不足"), "Disk Almost Full": i18n.T("磁盘快满了"), "Disk SMART Failing": i18n.T("磁盘 SMART 异常"),
+	"Overheating": i18n.T("温度过高"), "Heavy Disk IO": i18n.T("磁盘读写繁重"), "Battery Service Soon": i18n.T("电池需要维修"),
+	"Restart Recommended": i18n.T("建议重启"),
 }
 
 // HealthArt 按健康等级选插画：优先用 status 给的等级词（Mole cmd/status/metrics_health.go:197 的
@@ -60,9 +61,9 @@ func HealthText(msg string) (level, issues string) {
 		out = append(out, it)
 	}
 	if len(out) == 0 {
-		return level, "没有发现问题"
+		return level, i18n.T("没有发现问题")
 	}
-	return level, strings.Join(out, "，")
+	return level, strings.Join(out, i18n.T("，"))
 }
 
 // TempTag 温度标签；拿不到就不显示，不写 0°C。
@@ -77,11 +78,11 @@ func TempTag(v float64) string {
 func PressureTag(p string) string {
 	switch p {
 	case "normal":
-		return "压力 正常"
+		return i18n.T("压力 正常")
 	case "warn":
-		return "压力 偏高"
+		return i18n.T("压力 偏高")
 	case "critical":
-		return "压力 严重"
+		return i18n.T("压力 严重")
 	}
 	return ""
 }
@@ -90,12 +91,12 @@ func PressureTag(p string) string {
 func BatteryState(b *core.Battery) string {
 	switch b.Status {
 	case "charging":
-		return "充电中"
+		return i18n.T("充电中")
 	case "charged":
-		return "已充满"
+		return i18n.T("已充满")
 	}
 	if b.TimeLeft != "" {
-		return "可用 " + b.TimeLeft
+		return i18n.TC("battery", "可用 ") + b.TimeLeft
 	}
 	return ""
 }
@@ -105,7 +106,7 @@ func BatteryHealth(h string) string {
 	if h == "" {
 		return ""
 	}
-	return "状况 " + h
+	return i18n.T("状况 ") + h
 }
 
 // UptimeText 开机时长，如「29d 12h」「3h 5m」。
