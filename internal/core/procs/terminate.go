@@ -9,32 +9,33 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"vole/internal/i18n"
 )
 
 // 结束进程的失败原因。
 var (
-	ErrProtected  = errors.New("系统关键进程，不能结束")
-	ErrNotOwner   = errors.New("需要管理员权限")
-	ErrGone       = errors.New("进程已经退出")
-	ErrPermission = errors.New("权限不够，系统拒绝了这个操作")
+	ErrProtected  = errors.New(i18n.T("系统关键进程，不能结束"))
+	ErrNotOwner   = errors.New(i18n.T("需要管理员权限"))
+	ErrGone       = errors.New(i18n.T("进程已经退出"))
+	ErrPermission = errors.New(i18n.T("权限不够，系统拒绝了这个操作"))
 )
 
 // protected 是不允许从 Vole 结束的进程（按可执行文件名），值是原因。
 var protected = map[string]string{
-	"kernel_task":  "系统内核，不能结束",
-	"launchd":      "系统的第一个进程，结束会让系统崩溃",
-	"loginwindow":  "结束会立即注销当前用户，未保存的工作会丢失",
-	"WindowServer": "结束会让整个图形界面重启，所有窗口都会关闭",
+	"kernel_task":  i18n.T("系统内核，不能结束"),
+	"launchd":      i18n.T("系统的第一个进程，结束会让系统崩溃"),
+	"loginwindow":  i18n.T("结束会立即注销当前用户，未保存的工作会丢失"),
+	"WindowServer": i18n.T("结束会让整个图形界面重启，所有窗口都会关闭"),
 }
 
 // Protected 返回进程在保护名单里的原因；不在名单里返回空字符串。
 // 名单：kernel_task、launchd（含 PID 0/1）、loginwindow、WindowServer，以及 Vole 自己。
 func Protected(p Proc) string {
 	if p.PID <= 1 {
-		return "系统核心进程，不能结束"
+		return i18n.T("系统核心进程，不能结束")
 	}
 	if p.PID == os.Getpid() {
-		return "这是 Vole 自己，请用 Cmd+Q 退出"
+		return i18n.T("这是 Vole 自己，请用 Cmd+Q 退出")
 	}
 	return protected[p.Name]
 }
@@ -64,11 +65,11 @@ func Terminate(ctx context.Context, p Proc, force bool) error {
 
 func terminate(ctx context.Context, p Proc, force bool, ps runFunc) error {
 	if r := Protected(p); r != "" {
-		return fmt.Errorf("%w：%s", ErrProtected, r)
+		return fmt.Errorf(i18n.T("%w：%s"), ErrProtected, r)
 	}
 	out, err := ps(ctx, "-o", "uid=,lstart=", "-p", strconv.Itoa(p.PID))
 	if err != nil {
-		return fmt.Errorf("读取进程信息失败：%w", err)
+		return fmt.Errorf(i18n.T("读取进程信息失败：%w"), err)
 	}
 	f := strings.Fields(string(out))
 	if len(f) != 6 {

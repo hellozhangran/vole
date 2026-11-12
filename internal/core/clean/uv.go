@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+	"vole/internal/i18n"
 )
 
 // uvPrunable 估算 `uv cache prune` 能清掉多少（只读）。
@@ -89,7 +90,7 @@ func uvPrunable(ctx context.Context, root string) (int64, bool) {
 // 查环境变量 UV_LINK_MODE、用户配置（$XDG_CONFIG_HOME/uv/uv.toml、~/.config/uv/uv.toml）、系统配置（/etc/uv/uv.toml）。
 // 各项目自己 pyproject.toml / uv.toml 里的设置不扫（已知盲区）。
 func uvSymlinkRisk(env *Env) string {
-	const risk = "检测到 uv 使用 symlink 模式，清空缓存会让已有虚拟环境失效。"
+	risk := i18n.T("检测到 uv 使用 symlink 模式，清空缓存会让已有虚拟环境失效。")
 	getenv := func(k string) string {
 		if env.Getenv == nil {
 			return ""
@@ -158,17 +159,17 @@ func uvHolders(procs []Proc) string {
 		for _, pid := range pids[:min(3, len(pids))] {
 			ps = append(ps, fmt.Sprint(pid))
 		}
-		list := "PID " + strings.Join(ps, "、")
+		list := "PID " + strings.Join(ps, i18n.T("、"))
 		if len(pids) > 3 {
-			list += fmt.Sprintf(" 等 %d 个", len(pids))
+			list += fmt.Sprintf(i18n.T(" 等 %d 个"), len(pids))
 		}
 		if g.name == "" {
 			parts = append(parts, list)
 		} else {
-			parts = append(parts, g.name+"（"+list+"）")
+			parts = append(parts, g.name+i18n.T("（")+list+i18n.T("）"))
 		}
 	}
-	return "被 " + kind + " 占用：" + strings.Join(parts, "；")
+	return i18n.T("被 ") + kind + i18n.T(" 占用：") + strings.Join(parts, i18n.T("；"))
 }
 
 // uvCommand 从 uv 的命令行里取出子命令（uv run / uvx / uv）和项目目录（--directory、--project）。

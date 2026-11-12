@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"vole/internal/core/fsops"
+	"vole/internal/i18n"
 )
 
 // Plan 是卸载一个 app 的清单：app 本体 + 用户勾选的关联文件（只收用户级的）。
@@ -72,7 +73,7 @@ func Run(ctx context.Context, env *Env, plans []Plan, opts RunOptions) *Report {
 	for i, p := range plans {
 		if ctx.Err() != nil {
 			for _, rest := range plans[i:] {
-				o := Outcome{App: rest.App, Status: StatusCanceled, Reason: "用户取消"}
+				o := Outcome{App: rest.App, Status: StatusCanceled, Reason: i18n.T("用户取消")}
 				rep.Outcomes = append(rep.Outcomes, o)
 				log.Line(env.Now(), action, string(o.Status), rest.App.Size/1024, rest.App.BundleID, rest.App.Path, o.Reason)
 			}
@@ -103,22 +104,22 @@ func runOne(ctx context.Context, env *Env, p Plan, opts RunOptions, log *fsops.O
 		return skip(app.Blocked)
 	}
 	if systemApp(app.BundleID) {
-		return skip("系统 app，不能卸载")
+		return skip(i18n.T("系统 app，不能卸载"))
 	}
 	if err := checkApp(env, app.Path); err != nil {
 		return skip(err.Error())
 	}
 	if id, _, err := fsops.IdentityOf(app.Path); err != nil || id != app.Ident {
-		return skip("扫描后 app 被移动或替换了")
+		return skip(i18n.T("扫描后 app 被移动或替换了"))
 	}
 	if bundleIDOf(ctx, env, app.Path) != app.BundleID {
-		return skip("扫描后 app 被替换了（bundle id 变了）")
+		return skip(i18n.T("扫描后 app 被替换了（bundle id 变了）"))
 	}
 	// 同一个 bundle id 还有别的副本：数据是共享的，只卸本体（Mole batch.sh:748）
 	files := p.Files
 	if others := copiesOf(ctx, env, app); len(others) > 0 && len(files) > 0 {
 		files = nil
-		o.Failures = append(o.Failures, "还有别的副本装着（"+strings.Join(others, "、")+"），关联文件保留")
+		o.Failures = append(o.Failures, i18n.T("还有别的副本装着（")+strings.Join(others, i18n.T("、"))+i18n.T("），关联文件保留"))
 	}
 	var keep []File
 	for _, f := range files {
@@ -130,11 +131,11 @@ func runOne(ctx context.Context, env *Env, p Plan, opts RunOptions, log *fsops.O
 			under = env.DarwinCache
 		}
 		if err := fsops.CheckPath(f.Path, under); err != nil || protectedForUninstall(f.Path, env.Home) {
-			o.Failures = append(o.Failures, prettyPath(env, f.Path)+"：不能删")
+			o.Failures = append(o.Failures, prettyPath(env, f.Path)+i18n.T("：不能删"))
 			continue
 		}
 		if id, _, err := fsops.IdentityOf(f.Path); err != nil || id != f.Ident {
-			o.Failures = append(o.Failures, prettyPath(env, f.Path)+"：扫描后变了，没动")
+			o.Failures = append(o.Failures, prettyPath(env, f.Path)+i18n.T("：扫描后变了，没动"))
 			continue
 		}
 		keep = append(keep, f)
@@ -145,27 +146,27 @@ func runOne(ctx context.Context, env *Env, p Plan, opts RunOptions, log *fsops.O
 	if env.Processes != nil {
 		var err error
 		if procs, err = env.Processes(ctx); err != nil {
-			return skip("读不到进程列表，无法确认 app 是否在运行")
+			return skip(i18n.T("读不到进程列表，无法确认 app 是否在运行"))
 		}
 	}
 	running := len(pidsIn(procs, app.Path)) > 0
 	if running && !opts.Quit {
-		return skip("正在运行")
+		return skip(i18n.T("正在运行"))
 	}
 
 	if opts.DryRun {
 		o.Status, o.Moved = StatusWould, 1+len(keep)
 		o.Size = app.Size + sizeOf(keep)
-		how := "移到废纸篓"
+		how := i18n.T("移到废纸篓")
 		switch {
 		case app.Source == SourceHomebrew && app.CaskToken != "":
 			how = "brew uninstall --cask " + app.CaskToken
 		case app.NeedsAdmin:
-			how = "交给 Finder 移到废纸篓（会要管理员密码）"
+			how = i18n.T("交给 Finder 移到废纸篓（会要管理员密码）")
 		}
 		o.Reason = how
 		if running {
-			o.Reason = "先退出 app；" + how
+			o.Reason = i18n.T("先退出 app；") + how
 		}
 		return o
 	}
@@ -201,7 +202,7 @@ func runOne(ctx context.Context, env *Env, p Plan, opts RunOptions, log *fsops.O
 	// 6. 勾选的关联文件
 	for _, f := range keep {
 		if err := fsops.MoveToTrash(ctx, env.trashEnv(), f.Path); err != nil {
-			o.Failures = append(o.Failures, prettyPath(env, f.Path)+"："+err.Error())
+			o.Failures = append(o.Failures, prettyPath(env, f.Path)+i18n.T("：")+err.Error())
 			log.Line(env.Now(), action, "失败", f.Size/1024, app.BundleID, f.Path, err.Error())
 			continue
 		}
@@ -211,7 +212,7 @@ func runOne(ctx context.Context, env *Env, p Plan, opts RunOptions, log *fsops.O
 	}
 	o.Status = StatusDone
 	if len(o.Failures) > 0 {
-		o.Reason = fmt.Sprintf("%d 项关联文件没有移走", len(o.Failures))
+		o.Reason = fmt.Sprintf(i18n.T("%d 项关联文件没有移走"), len(o.Failures))
 	}
 	return o
 }
@@ -221,7 +222,7 @@ const lsregister = "/System/Library/Frameworks/CoreServices.framework/Frameworks
 // checkApp：app 路径必须在扫描根目录里、是 .app、本身和上级都不是 symlink、不是系统关键路径。
 func checkApp(env *Env, p string) error {
 	if p != filepath.Clean(p) || !filepath.IsAbs(p) || !strings.HasSuffix(strings.ToLower(p), ".app") {
-		return errors.New("路径不规范")
+		return errors.New(i18n.T("路径不规范"))
 	}
 	inRoot := false
 	for _, r := range env.Roots {
@@ -230,20 +231,20 @@ func checkApp(env *Env, p string) error {
 		}
 	}
 	if !inRoot {
-		return errors.New("不在应用程序目录里")
+		return errors.New(i18n.T("不在应用程序目录里"))
 	}
 	if fsops.CriticalPath(p, env.Home) {
-		return errors.New("系统关键路径")
+		return errors.New(i18n.T("系统关键路径"))
 	}
 	info, err := os.Lstat(p)
 	if err != nil {
-		return errors.New("已经不存在")
+		return errors.New(i18n.T("已经不存在"))
 	}
 	if info.Mode()&os.ModeSymlink != 0 {
 		return nil // 指向别处的 app 别名：只移走别名本身
 	}
 	if real, err := filepath.EvalSymlinks(filepath.Dir(p)); err != nil || real != filepath.Dir(p) {
-		return errors.New("上级目录经过符号链接")
+		return errors.New(i18n.T("上级目录经过符号链接"))
 	}
 	return nil
 }
@@ -264,7 +265,7 @@ func copiesOf(ctx context.Context, env *Env, app App) []string {
 func quitApp(ctx context.Context, env *Env, app App) error {
 	switch strings.ToLower(app.Executable) {
 	case "finder", "dock", "systemuiserver", "loginwindow", "windowserver":
-		return errors.New("系统进程，不能退出")
+		return errors.New(i18n.T("系统进程，不能退出"))
 	}
 	alive := func() []int {
 		procs, err := env.Processes(ctx)
@@ -307,7 +308,7 @@ func quitApp(ctx context.Context, env *Env, app App) error {
 			return nil
 		}
 	}
-	return errors.New("没能退出，请手动退出后再试")
+	return errors.New(i18n.T("没能退出，请手动退出后再试"))
 }
 
 // removeApp 移走 app 本体：Homebrew 装的交给 brew（不加 --zap）；当前用户能改的直接移到废纸篓；
@@ -322,9 +323,9 @@ func removeApp(ctx context.Context, env *Env, app App) error {
 				return nil
 			}
 			if err != nil {
-				return fmt.Errorf("brew 卸载失败：%v", err)
+				return fmt.Errorf(i18n.T("brew 卸载失败：%v"), err)
 			}
-			return errors.New("brew 卸载后 app 还在")
+			return errors.New(i18n.T("brew 卸载后 app 还在"))
 		}
 	}
 	if !app.NeedsAdmin {
@@ -335,7 +336,7 @@ func removeApp(ctx context.Context, env *Env, app App) error {
 		}
 	}
 	if !env.Finder {
-		return errors.New("需要管理员权限")
+		return errors.New(i18n.T("需要管理员权限"))
 	}
 	return finderError(fsops.MoveToTrashViaFinderWithin(ctx, app.Path, 3*time.Minute)) // 要等用户输管理员密码
 }
@@ -348,11 +349,11 @@ func finderError(err error) error {
 	msg := err.Error()
 	switch {
 	case strings.Contains(msg, "-1743") || strings.Contains(msg, "Not authorized"):
-		return errors.New("Vole 没有控制 Finder 的权限：到「系统设置 › 隐私与安全性 › 自动化」里允许 Vole 控制「访达」后再试")
-	case strings.Contains(msg, "-128") || strings.Contains(msg, "User canceled") || strings.Contains(msg, "用户已取消"):
-		return errors.New("已取消（没有输入管理员密码）")
-	case strings.Contains(msg, "超时"):
-		return errors.New("等 Finder 超时了（可能在等管理员密码）")
+		return errors.New(i18n.T("Vole 没有控制 Finder 的权限：到「系统设置 › 隐私与安全性 › 自动化」里允许 Vole 控制「访达」后再试"))
+	case strings.Contains(msg, "-128") || strings.Contains(msg, "User canceled") || strings.Contains(msg, i18n.T("用户已取消")):
+		return errors.New(i18n.T("已取消（没有输入管理员密码）"))
+	case strings.Contains(msg, i18n.T("超时")):
+		return errors.New(i18n.T("等 Finder 超时了（可能在等管理员密码）"))
 	}
 	return err
 }

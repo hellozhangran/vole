@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"vole/internal/i18n"
 )
 
 // Status 是一项的处理结果。
@@ -68,7 +69,7 @@ func Run(ctx context.Context, env *Env, items []Item, opts RunOptions) *RunRepor
 	for i, it := range items {
 		if ctx.Err() != nil {
 			for _, rest := range items[i:] {
-				o := Outcome{Item: rest, Status: StatusCanceled, Reason: "用户取消"}
+				o := Outcome{Item: rest, Status: StatusCanceled, Reason: i18n.T("用户取消")}
 				rep.Outcomes = append(rep.Outcomes, o)
 				log.Line(env.Now(), action, string(o.Status), rest.Size/1024, rest.RuleID, rest.Path, o.Reason)
 			}
@@ -92,7 +93,7 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 	skip := func(reason string) Outcome { return Outcome{Item: it, Status: StatusSkipped, Reason: reason} }
 	rule, ok := ruleByID(it.RuleID)
 	if !ok {
-		return skip("未知规则")
+		return skip(i18n.T("未知规则"))
 	}
 	if it.Blocked != "" {
 		return skip(it.Blocked)
@@ -103,7 +104,7 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 	if !ok {
 		list, err := candidates(ctx, env, rule)
 		if err != nil {
-			return skip("无法确认是否仍符合规则：" + err.Error())
+			return skip(i18n.T("无法确认是否仍符合规则：") + err.Error())
 		}
 		cands = map[string]Candidate{}
 		for _, c := range list {
@@ -113,13 +114,13 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 	}
 	c, ok := cands[it.Path]
 	if !ok {
-		return skip("不再符合规则（可能已被删除或已经变化）")
+		return skip(i18n.T("不再符合规则（可能已被删除或已经变化）"))
 	}
 	if c.Blocked != "" {
 		return skip(c.Blocked)
 	}
 	if c.Target != it.Target || !slices.Equal(c.Command, it.Command) {
-		return skip("清理方式和扫描时不一致")
+		return skip(i18n.T("清理方式和扫描时不一致"))
 	}
 
 	// 2. 路径校验；「删内容、留目录」的根目录不查名字，子项逐个查
@@ -130,10 +131,10 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 	// 3. 身份
 	id, _, err := identityOf(it.Path)
 	if err != nil {
-		return skip("已经不存在")
+		return skip(i18n.T("已经不存在"))
 	}
 	if id != it.Ident {
-		return skip("扫描后路径被替换成了别的文件或目录")
+		return skip(i18n.T("扫描后路径被替换成了别的文件或目录"))
 	}
 
 	// 4. 进程（每项都重新取快照）
@@ -148,7 +149,7 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 		}
 		// 判断不了的项：只有扫描时就标了「需确认」、用户仍然勾了才清；扫描后才变得判断不了的跳过
 		if uncertain && !it.Uncertain {
-			return skip("无法确认是否有 app 正在用它")
+			return skip(i18n.T("无法确认是否有 app 正在用它"))
 		}
 	}
 
@@ -161,9 +162,9 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 	if dry {
 		reason := it.Disposal.String()
 		if len(it.Command) > 0 {
-			reason = "运行 " + strings.Join(it.Command, " ")
+			reason = i18n.T("运行 ") + strings.Join(it.Command, " ")
 		} else if it.Target == Contents {
-			reason += "（目录里的全部内容，保留目录本身）"
+			reason += i18n.T("（目录里的全部内容，保留目录本身）")
 		}
 		return Outcome{Item: it, Status: StatusWould, Reason: reason}
 	}
@@ -177,7 +178,7 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 		if err := MoveToTrash(work, env, it.Path); err != nil {
 			return Outcome{Item: it, Status: StatusFailed, Reason: err.Error()}
 		}
-		return Outcome{Item: it, Status: StatusDone, Reason: "已移到废纸篓"}
+		return Outcome{Item: it, Status: StatusDone, Reason: i18n.T("已移到废纸篓")}
 	case it.Target == Whole:
 		if err := removeAllWritable(it.Path); err != nil {
 			return failed(work, it, err)
@@ -193,7 +194,7 @@ func removeContents(ctx context.Context, env *Env, rule *Rule, it Item) Outcome 
 	entries, err := os.ReadDir(it.Path)
 	if err != nil {
 		if errors.Is(err, fs.ErrPermission) {
-			return Outcome{Item: it, Status: StatusSkipped, Reason: "需要完全磁盘访问"}
+			return Outcome{Item: it, Status: StatusSkipped, Reason: i18n.T("需要完全磁盘访问")}
 		}
 		return Outcome{Item: it, Status: StatusFailed, Reason: err.Error()}
 	}
@@ -229,13 +230,13 @@ func removeContents(ctx context.Context, env *Env, rule *Rule, it Item) Outcome 
 	o := Outcome{Item: it, Status: StatusDone, Freed: max(it.Size-after, 0)}
 	var notes []string
 	if protectedN > 0 {
-		notes = append(notes, fmt.Sprintf("%d 个受保护的子项没有删", protectedN))
+		notes = append(notes, fmt.Sprintf(i18n.T("%d 个受保护的子项没有删"), protectedN))
 	}
 	if failedN > 0 {
 		o.Status = StatusFailed
-		notes = append(notes, fmt.Sprintf("%d 个子项删除失败：%s", failedN, reasonOf(firstErr)))
+		notes = append(notes, fmt.Sprintf(i18n.T("%d 个子项删除失败：%s"), failedN, reasonOf(firstErr)))
 	}
-	o.Reason = strings.Join(notes, "；")
+	o.Reason = strings.Join(notes, i18n.T("；"))
 	return o
 }
 
@@ -259,7 +260,7 @@ func runTool(ctx context.Context, env *Env, rule *Rule, it Item) Outcome {
 	if err != nil && rule.Tool != nil {
 		for _, e := range rule.Tool.Empty {
 			if strings.Contains(err.Error(), e) {
-				return Outcome{Item: it, Status: StatusDone, Reason: "没有可清理的内容", Freed: freed}
+				return Outcome{Item: it, Status: StatusDone, Reason: i18n.T("没有可清理的内容"), Freed: freed}
 			}
 		}
 	}
@@ -271,7 +272,7 @@ func runTool(ctx context.Context, env *Env, rule *Rule, it Item) Outcome {
 		}
 	}
 	if err != nil {
-		return Outcome{Item: it, Status: StatusFailed, Reason: "命令失败：" + err.Error(), Freed: freed}
+		return Outcome{Item: it, Status: StatusFailed, Reason: i18n.T("命令失败：") + err.Error(), Freed: freed}
 	}
 	return Outcome{Item: it, Status: StatusDone, Freed: freed}
 }
@@ -284,9 +285,9 @@ func failed(ctx context.Context, it Item, err error) Outcome {
 func reasonOf(err error) string {
 	switch {
 	case errors.Is(err, fs.ErrPermission):
-		return "没有权限"
+		return i18n.T("没有权限")
 	case errors.Is(err, fs.ErrNotExist):
-		return "已经不存在"
+		return i18n.T("已经不存在")
 	}
 	return err.Error()
 }

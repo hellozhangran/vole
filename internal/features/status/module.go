@@ -9,6 +9,7 @@ import (
 
 	"vole/internal/core/procs"
 	core "vole/internal/core/status"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/module"
 	"vole/internal/task"
@@ -61,7 +62,7 @@ func New(src core.Source, procSrc procs.Source) *Module {
 }
 
 func (m *Module) ID() string         { return "status" }
-func (m *Module) Title() string      { return "状态" }
+func (m *Module) Title() string      { return i18n.T("状态") }
 func (m *Module) Theme() kit.Theme   { return m.theme }
 func (m *Module) Init(h module.Host) { m.tasks = h.Tasks() }
 

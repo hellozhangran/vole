@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"vole/internal/core/fsops"
+	"vole/internal/i18n"
 )
 
 // Kind 是关联文件的分类（Mole review.sh）。
@@ -477,13 +478,13 @@ func (f *finder) extras(installed []App) {
 	// 1. 签名里声明的 App Group：~/Library/Group Containers/<group>（Docker 的 group.com.docker、百度网盘的 group.com.baidu.BaiduNetdisk-Mac）
 	for _, g := range appGroups(f.ctx, f.env, f.app.Path) {
 		if !sharedGroup(g, f.app, installed) {
-			f.add(f.lib("Group Containers", g), KindData, "签名里声明的 App Group："+g)
+			f.add(f.lib("Group Containers", g), KindData, i18n.T("签名里声明的 App Group：")+g)
 		}
 	}
 	// 2. Electron 的包名：Electron 默认把数据放在 Application Support/<package.json 的 productName 或 name>（mihomo-party、baidunetdisk）
 	if n := electronName(f.app.Path); n != "" && !others[strings.ToLower(n)] {
 		for _, d := range []string{"Application Support", "Caches", "Logs"} {
-			f.add(f.lib(d, n), KindData, "Electron 包名："+n)
+			f.add(f.lib(d, n), KindData, i18n.T("Electron 包名：")+n)
 		}
 	}
 	// 3. 内嵌 app 的名字：Application Support/<内嵌 app 的 CFBundleName>（Docker.app 里的 Docker Desktop.app）
@@ -499,11 +500,11 @@ func (f *finder) extras(installed []App) {
 		if n == "" || len(n) < 3 || commonName(n) || strings.Contains(strings.ToLower(n), "helper") || others[strings.ToLower(n)] {
 			continue
 		}
-		f.add(f.lib("Application Support", n), KindData, "内嵌的 "+filepath.Base(b))
+		f.add(f.lib("Application Support", n), KindData, i18n.T("内嵌的 ")+filepath.Base(b))
 	}
 	// 4. 明确的点目录
 	for _, d := range dotDirs[f.app.BundleID] {
-		f.add(filepath.Join(f.env.Home, d), KindData, "这个 app 的扩展和设置目录")
+		f.add(filepath.Join(f.env.Home, d), KindData, i18n.T("这个 app 的扩展和设置目录"))
 	}
 }
 

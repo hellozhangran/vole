@@ -2,10 +2,12 @@ package mole
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"vole/internal/core/analyze"
+	"vole/internal/i18n"
 )
 
 // 以下结构对应 analyze --json 的输出格式（定义见 third_party/mole/cmd/analyze/json.go），仅用于反序列化。
@@ -40,10 +42,10 @@ type rawFile struct {
 func parse(data []byte) (analyze.Report, error) {
 	var raw rawOutput
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return analyze.Report{}, fmt.Errorf("解析 analyze 输出失败：%w", err)
+		return analyze.Report{}, fmt.Errorf(i18n.T("解析 analyze 输出失败：%w"), err)
 	}
 	if raw.Path == "" {
-		return analyze.Report{}, fmt.Errorf("analyze 输出缺少 path 字段")
+		return analyze.Report{}, errors.New(i18n.T("analyze 输出缺少 path 字段"))
 	}
 
 	r := analyze.Report{

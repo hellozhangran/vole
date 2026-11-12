@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
+	"vole/internal/i18n"
 )
 
 // Access 是某项系统授权的状态。
@@ -22,11 +23,11 @@ const (
 func (a Access) String() string {
 	switch a {
 	case AccessGranted:
-		return "已授权"
+		return i18n.T("已授权")
 	case AccessDenied:
-		return "未授权"
+		return i18n.T("未授权")
 	}
-	return "未知"
+	return i18n.T("未知")
 }
 
 // Info 是一次环境探测的结果。

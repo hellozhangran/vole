@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"vole/internal/core/analyze"
+	"vole/internal/i18n"
 )
 
 // Source 调用 analyze 二进制。Binary 为绝对路径，由 binloc 定位。
@@ -49,7 +50,7 @@ func (s *Source) Scan(ctx context.Context, req analyze.Request) (analyze.Report,
 	err := cmd.Run()
 	elapsed := time.Since(start)
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return analyze.Report{}, fmt.Errorf("扫描已中止（%s）：%w", reason(ctxErr), ctxErr)
+		return analyze.Report{}, fmt.Errorf(i18n.T("扫描已中止（%s）：%w"), reason(ctxErr), ctxErr)
 	}
 	if err != nil {
 		code := -1
@@ -60,7 +61,7 @@ func (s *Source) Scan(ctx context.Context, req analyze.Request) (analyze.Report,
 		se := &analyze.ScanError{ExitCode: code, Stderr: stderr.String(), Err: err}
 		if code == -1 {
 			// 没能启动（不存在 / 不可执行 / 格式错误）或被信号杀掉（如签名校验失败）：扫描器本身坏了
-			se.Err = fmt.Errorf("%w：%w", analyze.ErrScannerUnavailable, err)
+			se.Err = fmt.Errorf(i18n.T("%w：%w"), analyze.ErrScannerUnavailable, err)
 		}
 		return analyze.Report{}, se
 	}
@@ -81,13 +82,13 @@ func checkDir(p string) (string, error) {
 	}
 	info, err := os.Stat(abs)
 	if errors.Is(err, os.ErrNotExist) {
-		return "", fmt.Errorf("%w：%s", analyze.ErrPathNotFound, abs)
+		return "", fmt.Errorf(i18n.T("%w：%s"), analyze.ErrPathNotFound, abs)
 	}
 	if err != nil {
-		return "", fmt.Errorf("无法访问 %s：%w", abs, err)
+		return "", fmt.Errorf(i18n.T("无法访问 %s：%w"), abs, err)
 	}
 	if !info.IsDir() {
-		return "", fmt.Errorf("不是目录：%s", abs)
+		return "", fmt.Errorf(i18n.T("不是目录：%s"), abs)
 	}
 	return abs, nil
 }
@@ -105,9 +106,9 @@ func scanEnv(base []string) []string {
 
 func reason(err error) string {
 	if errors.Is(err, context.DeadlineExceeded) {
-		return "超时"
+		return i18n.T("超时")
 	}
-	return "已取消"
+	return i18n.T("已取消")
 }
 
 // tailBuffer 只保留最后 limit 字节，防止异常输出撑爆内存。
