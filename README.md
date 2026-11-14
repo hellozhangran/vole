@@ -40,7 +40,7 @@ Vole is named after the field vole, a small cousin of the mole that also digs th
 
 - A Mac with Apple silicon (M1 or later). Intel Macs are not supported yet.
 - macOS 12 or later (tested on macOS 14).
-- The interface is available in Simplified Chinese and Korean. Vole follows the system's preferred languages (System Settings › General › Language & Region) and falls back to Simplified Chinese. To choose one explicitly, set `VOLE_LANG=zh` or `VOLE_LANG=ko`.
+- The interface is available in English, Simplified Chinese and Korean. By default Vole follows the system's preferred languages (System Settings › General › Language & Region) and falls back to English. To choose one, open **Vole › Settings…** (⌘,) and restart Vole.
 
 ## Install
 
