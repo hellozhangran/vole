@@ -59,6 +59,7 @@ const (
 // Host 是面板要外壳做的事。
 type Host interface {
 	ShowMain(tab string) // 打开（必要时重新显示）主窗口并切到某个 tab；tab 为空 = 保持当前
+	OpenSettings()       // 打开主窗口并弹出设置面板
 	Quit()
 }
 
@@ -177,6 +178,7 @@ func (p *Panel) Height() int {
 var (
 	openIcon    = kit.LineIcon(`<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/>`)
 	cleanIcon   = kit.LineIcon(`<path d="m14.5 6.5 3 3M4 20l8.5-8.5M14 4l6 6-3 3-6-6 3-3Z"/>`)
+	gearIcon    = kit.LineIcon(`<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>`)
 	loginIcon   = kit.LineIcon(`<path d="M12 3v9"/><path d="M6.5 6.5a8 8 0 1 0 11 0"/>`)
 	quitIcon    = kit.LineIcon(`<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/>`)
 	sparkleIcon = kit.LineIcon(`<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M19 16v4M17 18h4"/>`)
@@ -244,10 +246,10 @@ func (p *Panel) diagnosis(s *core.Snapshot) string {
 	case p.snap == nil:
 		return ui2.Waiting
 	}
-	level, issues := ui2.HealthText(s.HealthNote)
+	level, _ := ui2.HealthText(s.HealthNote)
 	text := level
-	if _, tail, _ := strings.Cut(s.HealthNote, ":"); strings.TrimSpace(tail) != "" {
-		text, _, _ = strings.Cut(issues, i18n.T("，"))
+	if issue := ui2.HealthFirstIssue(s.HealthNote); issue != "" {
+		text = issue
 	}
 	if len(s.Disks) > 0 {
 		d := s.Disks[0]
@@ -466,13 +468,14 @@ func (p *Panel) procs(c *ui.Context, t kit.Theme, s *core.Snapshot) {
 	})
 }
 
-// tools：底部卡。一排小图标按钮（打开 Vole、扫描清理 | 开机时启动、退出）；有清理记录时下面一行「清理观察」。
+// tools：底部卡。一排小图标按钮（打开 Vole、扫描清理、设置 | 开机时启动、退出）；有清理记录时下面一行「清理观察」。
 func (p *Panel) tools(c *ui.Context, t kit.Theme) {
 	ui.Column(c.Key("tools")).FillWidth().Shrink(0).Padding(10, ui2.Compact.PadX).
 		Radius(kit.RadiusL).Background(ui2.CardBG).Border(1, ui2.CardBorder).Children(func() {
 		ui.Row(c).FillWidth().Height(buttonH).Gap(6).Children(func() {
 			p.iconButton(c, t, "open", openIcon, i18n.T("打开 Vole"), false, false, func() { p.o.Host.ShowMain("") })
 			p.iconButton(c, t, "clean", cleanIcon, i18n.T("扫描清理"), false, false, func() { p.o.Host.ShowMain("clean") })
+			p.iconButton(c, t, "settings", gearIcon, i18n.T("设置"), false, false, p.o.Host.OpenSettings)
 			ui.Spacer(c)
 			p.loginButton(c, t)
 			p.iconButton(c, t, "quit", quitIcon, i18n.T("退出 Vole"), false, false, p.o.Host.Quit)

@@ -22,6 +22,14 @@ type Options struct {
 	Modules       []module.Module // 顺序 = tab 顺序
 	DefaultID     string          // 启动时停在哪个 tab
 	MenuBar       *MenuBar        // 非空：常驻菜单栏，关主窗口不退出
+	// Settings 非空时：应用菜单里加「设置… ⌘,」，在主窗口里弹出设置面板。
+	Settings func(ctl Controller) Settings
+}
+
+// Settings 是设置面板：Open 在每次打开前重新读状态，View 在打开时画遮罩和面板（open 置 false 即关闭）。
+type Settings interface {
+	Open()
+	View(c *ui.Context, open *bool)
 }
 
 // MenuBar 是菜单栏图标和它弹出的面板。
@@ -44,6 +52,7 @@ type Panel interface {
 // Controller 是面板能让外壳做的事。
 type Controller interface {
 	ShowMain(tab string) // 打开（必要时重新显示）主窗口；tab 非空时切过去
+	OpenSettings()       // 打开主窗口并弹出设置面板
 	Quit()
 }
 
@@ -63,6 +72,9 @@ type Shell struct {
 	fly       *mygo.Window // 菜单栏面板
 	tray      *mygo.Tray
 	noMenuBar bool // 菜单栏图标没建成，退回「关窗即退出」
+
+	settings     Settings
+	settingsOpen bool
 }
 
 // newShell 创建外壳并初始化所有模块；post 把函数排到主线程（窗口里是 win.Update，测试里是队列）。
@@ -78,6 +90,9 @@ func newShell(opts Options, post func(func())) *Shell {
 	}
 	if len(opts.Modules) > 0 {
 		opts.Modules[s.active].OnActivate()
+	}
+	if opts.Settings != nil {
+		s.settings = opts.Settings(s)
 	}
 	return s
 }
@@ -104,6 +119,13 @@ func Run(opts Options) error {
 	closed := false
 	quitting := false
 	mygo.App.SetName(opts.Name)
+	if opts.Settings != nil {
+		mygo.App.SetMenu(appMenu(func() {
+			if s != nil {
+				s.OpenSettings()
+			}
+		}))
+	}
 	mygo.App.WhenReady(func() {
 		var win *mygo.Window
 		post := func(fn func()) {
@@ -264,6 +286,44 @@ func (s *Shell) ShowMain(tab string) {
 	s.win.Invalidate()
 }
 
+// OpenSettings 打开设置面板：主窗口隐藏着就先显示出来（面板画在主窗口里）。
+func (s *Shell) OpenSettings() {
+	if s.settings == nil {
+		return
+	}
+	if s.win != nil {
+		s.ShowMain("")
+	}
+	s.settings.Open()
+	s.settingsOpen = true
+	if s.win != nil {
+		s.win.Invalidate()
+	}
+}
+
+// appMenu 是应用菜单：在系统默认的「关于、服务、隐藏、退出」之间加「设置… ⌘,」；其余菜单照 mygo 的默认。
+func appMenu(openSettings func()) *mygo.Menu {
+	return mygo.NewMenu([]*mygo.MenuItem{
+		{Role: mygo.RoleAppMenu, Submenu: []*mygo.MenuItem{
+			{Role: mygo.RoleAbout},
+			mygo.Separator(),
+			{Label: i18n.T("设置…"), Accelerator: "CmdOrCtrl+,", Click: func(*mygo.MenuItem, *mygo.Window) { openSettings() }},
+			mygo.Separator(),
+			{Role: mygo.RoleServices},
+			mygo.Separator(),
+			{Role: mygo.RoleHide},
+			{Role: mygo.RoleHideOthers},
+			{Role: mygo.RoleUnhide},
+			mygo.Separator(),
+			{Role: mygo.RoleQuit},
+		}},
+		{Role: mygo.RoleFileMenu},
+		{Role: mygo.RoleEditMenu},
+		{Role: mygo.RoleViewMenu},
+		{Role: mygo.RoleWindowMenu},
+	})
+}
+
 // Quit 退出 Vole（面板里的「退出」）。
 func (s *Shell) Quit() { mygo.App.Quit() }
 
@@ -291,6 +351,9 @@ func (s *Shell) View(c *ui.Context) {
 			}
 			// 每个模块用自己的 key，切 tab 时各自的控件状态（滚动位置等）互不干扰
 			ui.Box(c.Key("module-" + m.ID())).Grow(1).FillWidth().MinHeight(0).Children(func() { m.View(c) })
+			if s.settings != nil {
+				s.settings.View(c, &s.settingsOpen) // 打开时盖在整个窗口上
+			}
 		})
 }
 

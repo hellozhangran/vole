@@ -83,10 +83,14 @@ func (f *fakeSource) Watch(ctx context.Context, _ time.Duration, emit func(core.
 	}
 }
 
-type fakeHost struct{ shown, quits []string }
+type fakeHost struct {
+	shown, quits []string
+	settings     int
+}
 
 func (h *fakeHost) ShowMain(tab string) { h.shown = append(h.shown, tab) }
 func (h *fakeHost) Quit()               { h.quits = append(h.quits, "quit") }
+func (h *fakeHost) OpenSettings()       { h.settings++ }
 
 type harness struct {
 	t     *testing.T
@@ -214,10 +218,10 @@ func TestPanelLifecycleAndData(t *testing.T) {
 	// 点进程行：打开主窗口的状态 tab
 	h.click("查看进程 ChatGPT")
 	// 快捷按钮
-	for _, label := range []string{"打开 Vole", "扫描清理", "开机时启动：未开启", "退出 Vole"} {
+	for _, label := range []string{"打开 Vole", "扫描清理", "设置", "开机时启动：未开启", "退出 Vole"} {
 		h.click(label)
 	}
-	if got := h.host.shown; len(got) != 3 || got[0] != "status" || got[1] != "" || got[2] != "clean" || len(h.host.quits) != 1 {
+	if got := h.host.shown; len(got) != 3 || got[0] != "status" || got[1] != "" || got[2] != "clean" || len(h.host.quits) != 1 || h.host.settings != 1 {
 		t.Fatalf("快捷操作：%v %v", h.host.shown, h.host.quits)
 	}
 	if !on {

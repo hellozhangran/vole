@@ -16,6 +16,7 @@ import (
 	"vole/internal/core/binloc"
 	"vole/internal/core/fsops"
 	"vole/internal/core/procs"
+	corestore "vole/internal/core/settings"
 	corestatus "vole/internal/core/status"
 	statusmole "vole/internal/core/status/mole"
 	"vole/internal/core/sysenv"
@@ -23,6 +24,7 @@ import (
 	"vole/internal/features/apps"
 	"vole/internal/features/clean"
 	"vole/internal/features/menubar"
+	"vole/internal/features/settings"
 	"vole/internal/features/status"
 	"vole/internal/i18n"
 	"vole/internal/module"
@@ -63,10 +65,23 @@ func Run() error {
 			return menubar.New(menubar.Options{Source: stat, Host: ctl, Login: loginItem(),
 				Freed: func() fsops.Freed { return fsops.ReadFreed(logDir) }, Ports: sysenv.HardwarePorts})
 		}}
-	return shell.Run(shell.Options{Name: "Vole", Version: Version, Modules: modules, DefaultID: start, MenuBar: bar})
+	prefs := func(shell.Controller) shell.Settings {
+		l := loginItem()
+		return settings.New(settings.Options{
+			Path:     corestore.DefaultPath(),
+			FDA:      func() sysenv.Access { return sysenv.Probe().FullDiskAccess },
+			OpenFDA:  func() { _ = mygo.Shell.OpenExternal(fdaSettingsURL) },
+			Login:    settings.Login{Enabled: l.Enabled, Set: l.Set, Disabled: l.Disabled},
+			Relaunch: mygo.App.Relaunch,
+		})
+	}
+	return shell.Run(shell.Options{Name: "Vole", Version: Version, Modules: modules, DefaultID: start, MenuBar: bar, Settings: prefs})
 }
 
-// loginItem 是「开机时启动」开关：只有从 .app 里运行时系统才让注册（开发时 go run 出来的不是 .app）。
+// fdaSettingsURL 打开「系统设置 › 隐私与安全性 › 完全磁盘访问」。
+const fdaSettingsURL = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+
+// loginItem 是「开机时启动」开关（菜单栏面板和设置面板共用）：只有从 .app 里运行时系统才让注册（开发时 go run 出来的不是 .app）。
 func loginItem() menubar.Login {
 	exe, _ := os.Executable()
 	if !strings.Contains(exe, ".app/Contents/MacOS/") {
@@ -95,5 +110,5 @@ func (s missingStatus) Watch(context.Context, time.Duration, func(corestatus.Sna
 type missing struct{ err error }
 
 func (s missing) Scan(context.Context, core.Request) (core.Report, error) {
-	return core.Report{}, fmt.Errorf(i18n.T("%w：%w"), core.ErrScannerUnavailable, s.err)
+	return core.Report{}, &core.UnavailableError{Cause: s.err}
 }
