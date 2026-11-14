@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"time"
+	"vole/internal/i18n"
 )
 
 // Snapshot 是一帧系统状态。慢指标（电池、GPU、温度、进程、硬件）在采集器拿到之前为零值。
@@ -127,7 +128,7 @@ type Source interface {
 }
 
 // ErrUnavailable 表示采集器本身不可用：二进制缺失、无法执行、格式损坏或被信号杀掉。
-var ErrUnavailable = errors.New("状态组件不可用")
+var ErrUnavailable = errors.New(i18n.T("状态组件不可用"))
 
 // ExitError 表示采集器进程自己退出了（watch 模式本不该退出）。
 type ExitError struct {
@@ -138,15 +139,15 @@ type ExitError struct {
 }
 
 func (e *ExitError) Error() string {
-	msg := fmt.Sprintf("状态采集意外退出（已收到 %d 帧", e.Frames)
+	msg := fmt.Sprintf(i18n.T("状态采集意外退出（已收到 %d 帧"), e.Frames)
 	if e.ExitCode >= 0 {
-		msg += fmt.Sprintf("，退出码 %d", e.ExitCode)
+		msg += fmt.Sprintf(i18n.T("，退出码 %d"), e.ExitCode)
 	}
-	msg += "）"
+	msg += i18n.T("）")
 	if e.Stderr != "" {
-		msg += "：" + e.Stderr
+		msg += i18n.T("：") + e.Stderr
 	} else if e.Err != nil {
-		msg += "：" + e.Err.Error()
+		msg += i18n.T("：") + e.Err.Error()
 	}
 	return msg
 }

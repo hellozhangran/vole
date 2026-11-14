@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"vole/internal/i18n"
 )
 
 // ScanOptions 控制扫描。
@@ -80,7 +81,7 @@ func scanCategory(ctx context.Context, env *Env, c CategoryDef, snap *ProcSnapsh
 		r := &c.Rules[i]
 		cands, err := candidates(ctx, env, r)
 		if err != nil && ctx.Err() == nil {
-			notes = append(notes, r.Title+"："+err.Error())
+			notes = append(notes, r.Title+i18n.T("：")+err.Error())
 		}
 		for _, cand := range cands {
 			blocked := guardReason(r, cand, snap, snapErr)
@@ -101,13 +102,13 @@ func scanCategory(ctx context.Context, env *Env, c CategoryDef, snap *ProcSnapsh
 	}
 	wg.Wait()
 	if ctx.Err() != nil {
-		notes = append(notes, "扫描超时或被取消，部分项的大小没有算完（显示「—」）")
+		notes = append(notes, i18n.T("扫描超时或被取消，部分项的大小没有算完（显示「—」）"))
 	}
 	sort.SliceStable(out.Items, func(i, j int) bool { return out.Items[i].Size > out.Items[j].Size })
 	for _, it := range out.Items {
 		out.Size += it.Size
 	}
-	out.Note = strings.Join(dedup(notes), "；")
+	out.Note = strings.Join(dedup(notes), i18n.T("；"))
 	out.Elapsed = env.Now().Sub(start)
 	return out
 }
@@ -155,7 +156,7 @@ func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string
 		item.Blocked = reason
 		if uncertain && reason == "" {
 			item.Uncertain, item.Default = true, false
-			item.Note = strings.TrimSpace("无法确认是否有 app 正在用它，确认后再勾选。" + item.Note)
+			item.Note = strings.TrimSpace(i18n.T("无法确认是否有 app 正在用它，确认后再勾选。") + item.Note)
 		}
 	}
 	// 工具命令能估算实际释放量的（如 uv cache prune 只清不再被引用的部分），显示估算值
@@ -173,10 +174,10 @@ func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string
 	}
 	if err != nil && errors.Is(err, fs.ErrPermission) {
 		if size == 0 {
-			item.Blocked, item.SizeUnknown = "需要完全磁盘访问", true
+			item.Blocked, item.SizeUnknown = i18n.T("需要完全磁盘访问"), true
 			return item, true, ""
 		}
-		item.Note = strings.TrimSpace(item.Note + " 部分子目录读不到，实际可能更大。")
+		item.Note = strings.TrimSpace(item.Note + i18n.T(" 部分子目录读不到，实际可能更大。"))
 	}
 	if size == 0 {
 		return Item{}, false, ""
@@ -194,7 +195,7 @@ func guardReason(r *Rule, c Candidate, snap *ProcSnapshot, snapErr error) string
 		return ""
 	}
 	if snapErr != nil || snap == nil {
-		return "无法确认相关程序是否在运行"
+		return i18n.T("无法确认相关程序是否在运行")
 	}
 	if name, ok := snap.Running(r.Guard); ok {
 		if r.GuardText != nil {
@@ -205,13 +206,13 @@ func guardReason(r *Rule, c Candidate, snap *ProcSnapshot, snapErr error) string
 		if r.GuardReason != "" {
 			return r.GuardReason
 		}
-		return name + " 正在运行"
+		return name + i18n.T(" 正在运行")
 	}
 	if name, ok := snap.RunningArgs(r.GuardArgs); ok {
 		if r.Group != "" {
 			name = r.Group // 命令行匹配到的是 chrome-devtools-mcp 这类片段，显示成组名
 		}
-		return name + " 正在运行"
+		return name + i18n.T(" 正在运行")
 	}
 	return ""
 }
@@ -220,20 +221,20 @@ func guardReason(r *Rule, c Candidate, snap *ProcSnapshot, snapErr error) string
 // 读不到进程列表时返回原因（宁可不删）。
 func ownerReason(name string, snap *ProcSnapshot, snapErr error) (reason string, uncertain bool) {
 	if snapErr != nil || snap == nil {
-		return "无法读取进程列表，无法确认对应 app 是否在运行", false
+		return i18n.T("无法读取进程列表，无法确认对应 app 是否在运行"), false
 	}
 	o := snap.Owner(name)
 	if o.Running && o.System {
-		return SystemBusy + o.Name + " 正在使用", false
+		return SystemBusy + o.Name + i18n.T(" 正在使用"), false
 	}
 	if o.Running {
-		return o.Name + " 正在运行", false
+		return o.Name + i18n.T(" 正在运行"), false
 	}
 	return "", o.Uncertain
 }
 
 // SystemBusy 是被系统进程占用时原因的前缀（用户关不掉，界面上标「系统占用」）。
-const SystemBusy = "系统占用："
+var SystemBusy = i18n.T("系统占用：")
 
 // candidates 按规则选出候选项（只读）。扫描和删除前的复核都用它，保证「仍符合规则」的判断一致。
 func candidates(ctx context.Context, env *Env, r *Rule) ([]Candidate, error) {
@@ -274,9 +275,9 @@ func candidates(ctx context.Context, env *Env, r *Rule) ([]Candidate, error) {
 			case isGlob && shipItException(name):
 				// 设计决定：com.todesktop.* 的 .ShipIt 只是更新下载包和日志，放开，但要确认
 			case isGlob && (protectedName(name) || protectedName(owner)), protectedPath(m, env.Home):
-				blocked = "受保护：这个 app 的数据按保护名单不清理"
+				blocked = i18n.T("受保护：这个 app 的数据按保护名单不清理")
 			case whitelisted(m, env):
-				blocked = "在白名单里：默认不清理（删了要重新下载或重建）"
+				blocked = i18n.T("在白名单里：默认不清理（删了要重新下载或重建）")
 			}
 			if blocked != "" {
 				if r.ShowProtected && isGlob && !strings.HasPrefix(owner, "com.apple.") {
@@ -297,7 +298,7 @@ func candidates(ctx context.Context, env *Env, r *Rule) ([]Candidate, error) {
 			}
 			c := Candidate{Path: m, Target: t, Group: groupOf(r, owner)}
 			if isGlob && shipItException(name) {
-				c.Confirm, c.Note = true, "这是 app 的更新下载包和日志，里面可能有一个还没安装的更新；删了 app 会重新下载更新。"
+				c.Confirm, c.Note = true, i18n.T("这是 app 的更新下载包和日志，里面可能有一个还没安装的更新；删了 app 会重新下载更新。")
 			}
 			es = append(es, entry{c, info.ModTime()})
 		}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	ui2 "vole/internal/features/statusui"
+	"vole/internal/i18n"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -77,7 +78,7 @@ func defaultActions() actions {
 			if warn {
 				typ = mygo.MessageWarning
 			}
-			res, err := mygo.Dialog.Message(mygo.MessageOptions{Type: typ, Message: title, Detail: detail, Buttons: []string{ok, "取消"}, CancelButton: 1})
+			res, err := mygo.Dialog.Message(mygo.MessageOptions{Type: typ, Message: title, Detail: detail, Buttons: []string{ok, i18n.T("取消")}, CancelButton: 1})
 			return err == nil && res.Button == 0
 		},
 		alert: func(title, detail string) {
@@ -245,35 +246,35 @@ func (m *Module) icon(p procs.Proc) *ui.Bitmap {
 
 // procMenu 是每行「…」和右键共用的菜单，项目和顺序参照 Mole。
 func (m *Module) procMenu(menu *ui.Menu, p procs.Proc) {
-	pin := "固定行"
+	pin := i18n.T("固定行")
 	if m.pinned(p) {
-		pin = "取消固定"
+		pin = i18n.T("取消固定")
 	}
 	if menu.Item(pin).Chosen() {
 		m.togglePin(p)
 	}
 	menu.Separator()
-	if menu.Item("为什么在运行？").Chosen() {
+	if menu.Item(i18n.T("为什么在运行？")).Chosen() {
 		m.explainProc(p)
 	}
 	target := revealTarget(p)
-	if menu.Item("在 Finder 中显示").Disabled(target == "").Chosen() {
+	if menu.Item(i18n.T("在 Finder 中显示")).Disabled(target == "").Chosen() {
 		m.act.reveal(target)
 	}
 	menu.Separator()
-	if menu.Item("复制进程名称").Chosen() {
+	if menu.Item(i18n.T("复制进程名称")).Chosen() {
 		m.act.copyText(p.Name)
 	}
-	if menu.Item("复制 PID").Chosen() {
+	if menu.Item(i18n.T("复制 PID")).Chosen() {
 		m.act.copyText(strconv.Itoa(p.PID))
 	}
 	menu.Separator()
 	// 不能结束的进程：置灰，并把原因写在菜单项里（系统菜单项不支持悬停提示）
 	reason := procs.CanTerminate(p)
-	term, kill := "终止", "强制退出"
+	term, kill := i18n.T("终止"), i18n.T("强制退出")
 	if reason != "" {
-		term += "（" + reason + "）"
-		kill += "（" + reason + "）"
+		term += i18n.T("（") + reason + i18n.T("）")
+		kill += i18n.T("（") + reason + i18n.T("）")
 	}
 	if menu.Item(term).Disabled(reason != "").Chosen() {
 		m.askKill(p, false)
@@ -286,15 +287,15 @@ func (m *Module) procMenu(menu *ui.Menu, p procs.Proc) {
 // askKill 先弹确认框，确认后结束进程；失败弹出原因。整个流程在后台 goroutine，不卡界面。
 func (m *Module) askKill(p procs.Proc, force bool) {
 	name, _ := displayName(p)
-	who := fmt.Sprintf("「%s」（PID %d）", p.Name, p.PID)
+	who := fmt.Sprintf(i18n.T("「%s」（PID %d）"), p.Name, p.PID)
 	if name != p.Name {
-		who = fmt.Sprintf("「%s」的「%s」（PID %d）", name, p.Name, p.PID)
+		who = fmt.Sprintf(i18n.T("「%s」的「%s」（PID %d）"), name, p.Name, p.PID)
 	}
-	title, ok := "终止"+who+"？", "终止"
-	detail := "会向进程发送终止信号（SIGTERM），它通常会先保存状态再退出。"
+	title, ok := i18n.Tf("终止%s？", who), i18n.T("终止")
+	detail := i18n.T("会向进程发送终止信号（SIGTERM），它通常会先保存状态再退出。")
 	if force {
-		title, ok = "强制退出"+who+"？", "强制退出"
-		detail = "会立即结束进程（SIGKILL），它来不及保存，未保存的数据会丢失。"
+		title, ok = i18n.Tf("强制退出%s？", who), i18n.T("强制退出")
+		detail = i18n.T("会立即结束进程（SIGKILL），它来不及保存，未保存的数据会丢失。")
 	}
 	a := m.act
 	a.spawn(func() {
@@ -304,7 +305,7 @@ func (m *Module) askKill(p procs.Proc, force bool) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := a.terminate(ctx, p, force); err != nil {
-			a.alert("无法结束"+who, killReason(err))
+			a.alert(i18n.T("无法结束")+who, killReason(err))
 		}
 	})
 }
@@ -313,11 +314,11 @@ func (m *Module) askKill(p procs.Proc, force bool) {
 func killReason(err error) string {
 	switch {
 	case errors.Is(err, procs.ErrGone):
-		return "进程已经退出了。"
+		return i18n.T("进程已经退出了。")
 	case errors.Is(err, procs.ErrNotOwner):
-		return "这是其他用户或系统的进程，需要管理员权限才能结束。"
+		return i18n.T("这是其他用户或系统的进程，需要管理员权限才能结束。")
 	case errors.Is(err, procs.ErrPermission):
-		return "权限不够，系统拒绝了这个操作。"
+		return i18n.T("权限不够，系统拒绝了这个操作。")
 	case errors.Is(err, procs.ErrProtected):
 		return err.Error()
 	}
@@ -332,9 +333,9 @@ func (m *Module) explainProc(p procs.Proc) {
 		defer cancel()
 		ex, err := a.explain(ctx, p)
 		name, _ := displayName(p)
-		title := fmt.Sprintf("「%s」为什么在运行", name)
+		title := fmt.Sprintf(i18n.T("「%s」为什么在运行"), name)
 		if err != nil {
-			a.alert(title, "查询失败："+err.Error())
+			a.alert(title, i18n.T("查询失败：")+err.Error())
 			return
 		}
 		a.alert(title, explainText(p, ex, time.Now()))
@@ -346,36 +347,36 @@ func explainText(p procs.Proc, ex procs.Explanation, now time.Time) string {
 	var lines []string
 	add := func(label, v string) {
 		if v != "" {
-			lines = append(lines, label+"："+v)
+			lines = append(lines, label+i18n.T("：")+v)
 		}
 	}
-	add("可执行文件", p.Path)
+	add(i18n.T("可执行文件"), p.Path)
 	if !p.Started.IsZero() {
-		add("启动时间", p.Started.Format("2006-01-02 15:04:05")+"（已运行 "+ui2.UptimeText(now.Sub(p.Started))+"）")
+		add(i18n.T("启动时间"), p.Started.Format("2006-01-02 15:04:05")+i18n.T("（已运行 ")+ui2.UptimeText(now.Sub(p.Started))+i18n.T("）"))
 	}
 	user := p.User
 	if user != "" {
-		user += fmt.Sprintf("（UID %d）", p.UID)
+		user += fmt.Sprintf(i18n.T("（UID %d）"), p.UID)
 	} else {
 		user = fmt.Sprintf("UID %d", p.UID)
 	}
-	add("所属用户", user)
+	add(i18n.T("所属用户"), user)
 	if len(ex.Chain) > 0 {
 		chain := []string{fmt.Sprintf("%s (%d)", p.Name, p.PID)}
 		for _, a := range ex.Chain {
 			chain = append(chain, fmt.Sprintf("%s (%d)", a.Name, a.PID))
 		}
-		add("父进程链", strings.Join(chain, " → "))
+		add(i18n.T("父进程链"), strings.Join(chain, " → "))
 	}
 	if j := ex.Job; j != nil {
 		via := ""
 		if j.PID != p.PID {
-			via = fmt.Sprintf("；本进程由该任务的进程 %d 派生", j.PID)
+			via = fmt.Sprintf(i18n.T("；本进程由该任务的进程 %d 派生"), j.PID)
 		}
-		add("launchd 任务", fmt.Sprintf("%s（%s 域%s）", j.Label, j.Domain, via))
+		add(i18n.T("launchd 任务"), fmt.Sprintf(i18n.T("%s（%s 域%s）"), j.Label, j.Domain, via))
 		add("plist", j.Plist)
 		if j.Plist == "" && j.SubmittedBy != "" {
-			add("提交者", j.SubmittedBy+"（运行时提交，没有 plist 文件）")
+			add(i18n.T("提交者"), j.SubmittedBy+i18n.T("（运行时提交，没有 plist 文件）"))
 		}
 	}
 	return strings.Join(lines, "\n")

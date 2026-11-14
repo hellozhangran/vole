@@ -20,6 +20,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"vole/internal/core/fsops"
+	"vole/internal/i18n"
 )
 
 // ListOptions 控制清单。
@@ -155,9 +156,9 @@ func inspect(ctx context.Context, env *Env, p, root string, opts ListOptions) (A
 
 	switch {
 	case a.BundleID == env.SelfID && env.SelfID != "":
-		a.Blocked = "Vole 正在使用，不能卸载自己"
+		a.Blocked = i18n.T("Vole 正在使用，不能卸载自己")
 	case officialVendor(a.BundleID, a.Name, file) != "":
-		a.Blocked = "请用 " + officialVendor(a.BundleID, a.Name, file) + " 自己的卸载器"
+		a.Blocked = i18n.Tf("请用 %s 自己的卸载器", officialVendor(a.BundleID, a.Name, file))
 	}
 
 	if id, _, err := fsops.IdentityOf(p); err == nil {

@@ -24,6 +24,7 @@ import (
 	"vole/internal/features/clean"
 	"vole/internal/features/menubar"
 	"vole/internal/features/status"
+	"vole/internal/i18n"
 	"vole/internal/module"
 	"vole/internal/shell"
 )
@@ -69,7 +70,7 @@ func Run() error {
 func loginItem() menubar.Login {
 	exe, _ := os.Executable()
 	if !strings.Contains(exe, ".app/Contents/MacOS/") {
-		return menubar.Login{Disabled: "开发版不是 .app，系统不让注册登录项；打包后可用"}
+		return menubar.Login{Disabled: i18n.T("开发版不是 .app，系统不让注册登录项；打包后可用")}
 	}
 	return menubar.Login{Enabled: mygo.App.OpenAtLogin, Set: mygo.App.SetOpenAtLogin}
 }
@@ -87,12 +88,12 @@ func statusSource() corestatus.Source {
 type missingStatus struct{ err error }
 
 func (s missingStatus) Watch(context.Context, time.Duration, func(corestatus.Snapshot)) error {
-	return &corestatus.ExitError{ExitCode: -1, Err: fmt.Errorf("%w：%w", corestatus.ErrUnavailable, s.err)}
+	return &corestatus.ExitError{ExitCode: -1, Err: fmt.Errorf(i18n.T("%w：%w"), corestatus.ErrUnavailable, s.err)}
 }
 
 // missing 是找不到 analyze 二进制时的数据源。
 type missing struct{ err error }
 
 func (s missing) Scan(context.Context, core.Request) (core.Report, error) {
-	return core.Report{}, fmt.Errorf("%w：%w", core.ErrScannerUnavailable, s.err)
+	return core.Report{}, fmt.Errorf(i18n.T("%w：%w"), core.ErrScannerUnavailable, s.err)
 }

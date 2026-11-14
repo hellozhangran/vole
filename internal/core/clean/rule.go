@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"vole/internal/core/fsops"
+	"vole/internal/i18n"
 )
 
 // Target 决定一项删的是什么。
@@ -40,9 +41,9 @@ const (
 
 func (d Disposal) String() string {
 	if d == ToTrash {
-		return "移到废纸篓"
+		return i18n.T("移到废纸篓")
 	}
-	return "永久删除"
+	return i18n.T("永久删除")
 }
 
 // Tool 是工具自带的清理命令。装了工具时优先用它（工具知道哪些还在用），没装就按路径删。

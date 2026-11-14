@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"vole/internal/i18n"
 )
 
 // Env 是清理用到的全部外部环境。测试里每一项都指向临时目录或假实现，绝不碰本机真实目录。
@@ -39,7 +40,7 @@ func DefaultEnv() (*Env, error) {
 	}
 	home, err = filepath.EvalSymlinks(home)
 	if err != nil {
-		return nil, fmt.Errorf("解析家目录失败：%w", err)
+		return nil, fmt.Errorf(i18n.T("解析家目录失败：%w"), err)
 	}
 	env := &Env{
 		Home:     home,
@@ -117,7 +118,7 @@ func runCommand(ctx context.Context, name string, args ...string) ([]byte, error
 	}
 	if err != nil {
 		if msg != "" {
-			return stdout.Bytes(), fmt.Errorf("%w：%s", err, msg)
+			return stdout.Bytes(), fmt.Errorf(i18n.T("%w：%s"), err, msg)
 		}
 		return stdout.Bytes(), err
 	}

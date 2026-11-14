@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"vole/internal/core/fsops"
+	"vole/internal/i18n"
 )
 
 // Source 是 app 的来源。
@@ -116,8 +117,8 @@ func DefaultEnv() (*Env, error) {
 			env.DarwinCache = d // /var → /private/var：用真实路径，删前校验才过得了
 		}
 	}
-	// Vole 的界面是简体中文：显示名先取简体中文，再按系统首选语言（Mole 命令行版只按系统语言；Mole app 显示的也是中文名）
-	env.Languages = append([]string{"zh-Hans"}, preferredLanguages(env.Run)...)
+	// 显示名先取界面语言（简体中文或韩语，见 i18n.AppleLanguage），再按系统首选语言（Mole 命令行版只按系统语言；Mole app 显示的也是中文名）
+	env.Languages = append([]string{i18n.AppleLanguage()}, preferredLanguages(env.Run)...)
 	return env, nil
 }
 
@@ -163,7 +164,7 @@ type cmdError struct {
 	msg string
 }
 
-func (e *cmdError) Error() string { return e.err.Error() + "：" + e.msg }
+func (e *cmdError) Error() string { return e.err.Error() + i18n.T("：") + e.msg }
 func (e *cmdError) Unwrap() error { return e.err }
 
 // lookPath 在 PATH 和 Homebrew 的常见位置里找工具（从 Finder 打开时 PATH 很短）。

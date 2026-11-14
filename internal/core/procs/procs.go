@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"vole/internal/i18n"
 )
 
 // Proc 是一个进程。
@@ -147,7 +148,7 @@ const scanFields = "pid=,ppid=,uid=,rss=,time=,lstart="
 func (s *sampler) sample(ctx context.Context, now time.Time, opts Options) ([]Proc, error) {
 	out, err := s.run(ctx, "-axo", scanFields)
 	if err != nil {
-		return nil, fmt.Errorf("读取进程列表失败：%w", err)
+		return nil, fmt.Errorf(i18n.T("读取进程列表失败：%w"), err)
 	}
 	rows := parseScan(out)
 	elapsed := now.Sub(s.prevAt)
@@ -281,7 +282,7 @@ func parseCPUTime(s string) (time.Duration, error) {
 	}
 	parts := strings.Split(s, ":")
 	if len(parts) < 2 || len(parts) > 3 {
-		return 0, fmt.Errorf("无法解析 CPU 时间 %q", s)
+		return 0, fmt.Errorf(i18n.T("无法解析 CPU 时间 %q"), s)
 	}
 	sec, err := strconv.ParseFloat(parts[len(parts)-1], 64)
 	if err != nil {

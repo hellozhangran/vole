@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"vole/internal/i18n"
 )
 
 // Ancestor 是父进程链上的一环。
@@ -47,7 +48,7 @@ func explain(ctx context.Context, p Proc, uid int, ps, launchctl runFunc) (Expla
 	var ex Explanation
 	out, err := ps(ctx, "-axo", "pid=,ppid=,comm=")
 	if err != nil {
-		return ex, fmt.Errorf("读取进程列表失败：%w", err)
+		return ex, fmt.Errorf(i18n.T("读取进程列表失败：%w"), err)
 	}
 	type node struct {
 		ppid int

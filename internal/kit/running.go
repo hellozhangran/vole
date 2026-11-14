@@ -6,6 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"vole/internal/i18n"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -26,7 +27,7 @@ var runningFrames = sync.OnceValue(func() []*ui.Bitmap {
 		}
 		b, err := ui.DecodeBitmap(data)
 		if err != nil {
-			panic("kit: 奔跑帧解码失败: " + err.Error())
+			panic(i18n.T("kit: 奔跑帧解码失败: ") + err.Error())
 		}
 		frames = append(frames, b)
 	}

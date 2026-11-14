@@ -16,6 +16,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	core "vole/internal/core/apps"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/module"
 	"vole/internal/task"
@@ -142,7 +143,7 @@ func New(be Backend) *Module {
 }
 
 func (m *Module) ID() string         { return "apps" }
-func (m *Module) Title() string      { return "软件" }
+func (m *Module) Title() string      { return i18n.T("软件") }
 func (m *Module) Theme() kit.Theme   { return m.theme }
 func (m *Module) Init(h module.Host) { m.tasks = h.Tasks() }
 

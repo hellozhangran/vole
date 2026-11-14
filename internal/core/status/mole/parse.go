@@ -2,11 +2,13 @@ package mole
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"vole/internal/core/status"
+	"vole/internal/i18n"
 )
 
 // 以下结构对应 Mole status --watch 每行 JSON 的字段（定义见 third_party/mole/cmd/status/metrics.go 的 MetricsSnapshot），只取 Vole 用得上的，仅用于反序列化。
@@ -117,10 +119,10 @@ const mb = 1e6
 func parse(line []byte) (status.Snapshot, error) {
 	var raw rawSnapshot
 	if err := json.Unmarshal(line, &raw); err != nil {
-		return status.Snapshot{}, fmt.Errorf("解析 status 输出失败：%w", err)
+		return status.Snapshot{}, fmt.Errorf(i18n.T("解析 status 输出失败：%w"), err)
 	}
 	if raw.CollectedAt.IsZero() {
-		return status.Snapshot{}, fmt.Errorf("status 输出缺少 collected_at")
+		return status.Snapshot{}, errors.New(i18n.T("status 输出缺少 collected_at"))
 	}
 
 	s := status.Snapshot{

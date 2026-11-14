@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"vole/internal/i18n"
 )
 
 // DiskUsage 统计 root 实际占用的磁盘空间，口径同 `du -sk`：占用块数 × 512，不跟随 symlink，
@@ -75,7 +76,7 @@ func IdentityOf(p string) (Identity, os.FileInfo, error) {
 	}
 	st, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
-		return Identity{}, info, errors.New("读不到文件身份")
+		return Identity{}, info, errors.New(i18n.T("读不到文件身份"))
 	}
 	return Identity{Dev: uint64(st.Dev), Ino: st.Ino, Mode: uint32(st.Mode) & syscall.S_IFMT}, info, nil
 }

@@ -5,10 +5,11 @@
 package clean
 
 import (
-	"fmt"
+	"errors"
 	"path/filepath"
 
 	"vole/internal/core/fsops"
+	"vole/internal/i18n"
 )
 
 // validatePath 校验一个要删除的路径。返回的错误是给用户看的原因。
@@ -22,10 +23,10 @@ func validatePath(p string, env *Env, checkName bool) error {
 		return err
 	}
 	if protectedPath(p, env.Home) || (checkName && protectedName(filepath.Base(p))) {
-		return fmt.Errorf("在保护名单里")
+		return errors.New(i18n.T("在保护名单里"))
 	}
 	if whitelisted(p, env) {
-		return fmt.Errorf("在白名单里")
+		return errors.New(i18n.T("在白名单里"))
 	}
 	return nil
 }

@@ -4,6 +4,7 @@ package soon
 import (
 	"github.com/egoist/mygo/ui"
 
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/module"
 )
@@ -29,8 +30,8 @@ func (p *placeholder) View(c *ui.Context) {
 	ui.Column(c).Fill().Center().Gap(16).Padding(0, 0, 60, 0).Children(func() {
 		kit.Art(c, kit.ArtComingSoon, kit.ArtM)
 		ui.Column(c).AlignItems(ui.Center).Gap(8).Children(func() {
-			ui.Text(c, p.title+"功能即将推出").FontSize(kit.TextHeadline).SingleLine()
-			ui.Text(c, "当前版本先做磁盘分析，可以到「分析」看看").FontSize(kit.TextBody).TextColor(t.Muted).SingleLine()
+			ui.Text(c, p.title+i18n.T("功能即将推出")).FontSize(kit.TextHeadline).SingleLine()
+			ui.Text(c, i18n.T("当前版本先做磁盘分析，可以到「分析」看看")).FontSize(kit.TextBody).TextColor(t.Muted).SingleLine()
 		})
 	})
 }

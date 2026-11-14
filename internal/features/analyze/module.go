@@ -14,6 +14,7 @@ import (
 
 	core "vole/internal/core/analyze"
 	"vole/internal/core/sysenv"
+	"vole/internal/i18n"
 	"vole/internal/kit"
 	"vole/internal/module"
 	"vole/internal/task"
@@ -96,7 +97,7 @@ func newModule(src core.Source, env sysenv.Info, roots []root) *Module {
 }
 
 func (m *Module) ID() string         { return "analyze" }
-func (m *Module) Title() string      { return "分析" }
+func (m *Module) Title() string      { return i18n.T("分析") }
 func (m *Module) Theme() kit.Theme   { return m.theme }
 func (m *Module) Init(h module.Host) { m.tasks = h.Tasks() }
 
