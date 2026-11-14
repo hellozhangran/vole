@@ -114,7 +114,7 @@ func scanCategory(ctx context.Context, env *Env, c CategoryDef, snap *ProcSnapsh
 }
 
 // measure 统计一项的大小并生成 Item；大小为 0 的不列。超时没算完的照样列出，大小写「—」。
-func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string, snap *ProcSnapshot, snapErr error) (Item, bool, string) {
+func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked block, snap *ProcSnapshot, snapErr error) (Item, bool, string) {
 	id, _, err := identityOf(c.Path)
 	if err != nil {
 		return Item{}, false, ""
@@ -122,7 +122,7 @@ func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string
 	item := Item{
 		ID: r.ID + ":" + env.pretty(c.Path), RuleID: r.ID, Category: r.Category, Title: c.Title, Group: r.Group,
 		Path: c.Path, Target: c.Target, Default: r.Default, Disposal: r.Disposal,
-		Command: c.Command, Note: r.Note, Blocked: blocked, Ident: id,
+		Command: c.Command, Note: r.Note, Blocked: blocked.reason, Block: blocked.kind, BlockApp: blocked.app, Ident: id,
 	}
 	if c.Group != "" {
 		item.Group = c.Group
@@ -149,12 +149,12 @@ func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string
 		item.Title = r.Title
 	}
 	if item.Blocked == "" {
-		item.Blocked = c.Blocked
+		item.Blocked, item.Block = c.Blocked, c.Block
 	}
 	if r.BundleGuard && item.Blocked == "" {
-		reason, uncertain := ownerReason(ownerName(r, c.Path), snap, snapErr)
-		item.Blocked = reason
-		if uncertain && reason == "" {
+		b, uncertain := ownerReason(ownerName(r, c.Path), snap, snapErr)
+		item.Blocked, item.Block, item.BlockApp = b.reason, b.kind, b.app
+		if uncertain && b.reason == "" {
 			item.Uncertain, item.Default = true, false
 			item.Note = strings.TrimSpace(i18n.T("无法确认是否有 app 正在用它，确认后再勾选。") + item.Note)
 		}
@@ -174,7 +174,7 @@ func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string
 	}
 	if err != nil && errors.Is(err, fs.ErrPermission) {
 		if size == 0 {
-			item.Blocked, item.SizeUnknown = i18n.T("需要完全磁盘访问"), true
+			item.Blocked, item.Block, item.SizeUnknown = i18n.T("需要完全磁盘访问"), BlockFDA, true
 			return item, true, ""
 		}
 		item.Note = strings.TrimSpace(item.Note + i18n.T(" 部分子目录读不到，实际可能更大。"))
@@ -187,54 +187,56 @@ func measure(ctx context.Context, env *Env, r *Rule, c Candidate, blocked string
 
 // guardReason 返回规则的守卫进程在运行的原因；判断不了也返回原因（宁可不删）。
 // 交给工具命令、且规则说明工具自己有锁时（GuardOnlyByPath），不按进程拦。
-func guardReason(r *Rule, c Candidate, snap *ProcSnapshot, snapErr error) string {
+func guardReason(r *Rule, c Candidate, snap *ProcSnapshot, snapErr error) block {
 	if len(r.Guard) == 0 && len(r.GuardArgs) == 0 {
-		return ""
+		return block{}
 	}
 	if r.Tool != nil && r.Tool.GuardOnlyByPath && len(c.Command) > 0 {
-		return ""
+		return block{}
 	}
 	if snapErr != nil || snap == nil {
-		return i18n.T("无法确认相关程序是否在运行")
+		return block{reason: i18n.T("无法确认相关程序是否在运行"), kind: BlockOther}
 	}
 	if name, ok := snap.Running(r.Guard); ok {
 		if r.GuardText != nil {
-			if t := r.GuardText(snap.ByName(r.Guard)); t != "" {
-				return t
+			if t, app := r.GuardText(snap.ByName(r.Guard)); t != "" {
+				return block{reason: t, kind: BlockRunning, app: app}
 			}
 		}
 		if r.GuardReason != "" {
-			return r.GuardReason
+			return block{reason: r.GuardReason, kind: BlockOther}
 		}
-		return name + i18n.T(" 正在运行")
+		return running(name)
 	}
 	if name, ok := snap.RunningArgs(r.GuardArgs); ok {
 		if r.Group != "" {
 			name = r.Group // 命令行匹配到的是 chrome-devtools-mcp 这类片段，显示成组名
 		}
-		return name + i18n.T(" 正在运行")
+		return running(name)
 	}
-	return ""
+	return block{}
+}
+
+// running 是「<程序> 正在运行」。
+func running(name string) block {
+	return block{reason: name + i18n.T(" 正在运行"), kind: BlockRunning, app: name}
 }
 
 // ownerReason 判断缓存目录对应的 app：在运行时返回原因；判断不了时 uncertain 为 true（由调用方决定怎么处理）；
 // 读不到进程列表时返回原因（宁可不删）。
-func ownerReason(name string, snap *ProcSnapshot, snapErr error) (reason string, uncertain bool) {
+func ownerReason(name string, snap *ProcSnapshot, snapErr error) (b block, uncertain bool) {
 	if snapErr != nil || snap == nil {
-		return i18n.T("无法读取进程列表，无法确认对应 app 是否在运行"), false
+		return block{reason: i18n.T("无法读取进程列表，无法确认对应 app 是否在运行"), kind: BlockOther}, false
 	}
 	o := snap.Owner(name)
 	if o.Running && o.System {
-		return SystemBusy + o.Name + i18n.T(" 正在使用"), false
+		return block{reason: i18n.T("系统占用：") + o.Name + i18n.T(" 正在使用"), kind: BlockSystem}, false
 	}
 	if o.Running {
-		return o.Name + i18n.T(" 正在运行"), false
+		return running(o.Name), false
 	}
-	return "", o.Uncertain
+	return block{}, o.Uncertain
 }
-
-// SystemBusy 是被系统进程占用时原因的前缀（用户关不掉，界面上标「系统占用」）。
-var SystemBusy = i18n.T("系统占用：")
 
 // candidates 按规则选出候选项（只读）。扫描和删除前的复核都用它，保证「仍符合规则」的判断一致。
 func candidates(ctx context.Context, env *Env, r *Rule) ([]Candidate, error) {
@@ -270,18 +272,18 @@ func candidates(ctx context.Context, env *Env, r *Rule) ([]Candidate, error) {
 				continue
 			}
 			// glob 匹配出来的项要查名字（Owner > 0 时还查 app 目录名）；规则里写死的路径（如 com.apple.dt.Xcode）是明确要清它的内容
-			blocked := ""
+			blocked, kind := "", BlockNone
 			switch {
 			case isGlob && shipItException(name):
 				// 设计决定：com.todesktop.* 的 .ShipIt 只是更新下载包和日志，放开，但要确认
 			case isGlob && (protectedName(name) || protectedName(owner)), protectedPath(m, env.Home):
-				blocked = i18n.T("受保护：这个 app 的数据按保护名单不清理")
+				blocked, kind = i18n.T("受保护：这个 app 的数据按保护名单不清理"), BlockProtected
 			case whitelisted(m, env):
-				blocked = i18n.T("在白名单里：默认不清理（删了要重新下载或重建）")
+				blocked, kind = i18n.T("在白名单里：默认不清理（删了要重新下载或重建）"), BlockWhitelist
 			}
 			if blocked != "" {
 				if r.ShowProtected && isGlob && !strings.HasPrefix(owner, "com.apple.") {
-					es = append(es, entry{Candidate{Path: m, Target: Whole, Blocked: blocked, Group: groupOf(r, owner)}, info.ModTime()})
+					es = append(es, entry{Candidate{Path: m, Target: Whole, Blocked: blocked, Block: kind, Group: groupOf(r, owner)}, info.ModTime()})
 				}
 				continue
 			}

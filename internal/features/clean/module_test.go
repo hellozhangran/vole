@@ -81,8 +81,31 @@ func (f *fakeBackend) LogDir() string { return "/Users/test/Library/Logs/Vole" }
 
 func item(cat, id, title string, size int64, def bool, blocked string, cmd ...string) core.Item {
 	rule, path, _ := strings.Cut(id, ":")
+	kind, app := blockOf(blocked)
 	return core.Item{ID: id, RuleID: rule, Category: cat, Title: title, Path: strings.Replace(path, "~", "/Users/test", 1),
-		Size: size, Default: def, Blocked: blocked, Command: cmd, Note: "测试说明"}
+		Size: size, Default: def, Blocked: blocked, Block: kind, BlockApp: app, Command: cmd, Note: "测试说明"}
+}
+
+// blockOf 按假数据里写的中文原因补上类型（只为造测试数据；core/clean 扫描时直接给出类型，界面不解析文字）。
+func blockOf(reason string) (core.BlockKind, string) {
+	switch {
+	case reason == "":
+		return core.BlockNone, ""
+	case strings.HasPrefix(reason, "在白名单里"):
+		return core.BlockWhitelist, ""
+	case strings.HasPrefix(reason, "受保护"):
+		return core.BlockProtected, ""
+	case strings.HasPrefix(reason, "系统占用："):
+		return core.BlockSystem, ""
+	case reason == "需要完全磁盘访问":
+		return core.BlockFDA, ""
+	case strings.HasPrefix(reason, "被 uv run 占用："):
+		return core.BlockRunning, "uv run（my-mcp-server）"
+	}
+	if app, ok := strings.CutSuffix(reason, " 正在运行"); ok {
+		return core.BlockRunning, app
+	}
+	return core.BlockOther, ""
 }
 
 func fakeResult() *core.ScanResult {
@@ -104,7 +127,7 @@ func fakeResult() *core.ScanResult {
 			item(core.CatCaches, "caches.apps:~/Library/Caches/puccinialin", "puccinialin", 489_000_000, false, ""),
 			item(core.CatCaches, "caches.apps:~/Library/Caches/com.youdao.YoudaoDict", "com.youdao.YoudaoDict", 450_000_000, true, "网易有道翻译 正在运行"),
 			item(core.CatCaches, "caches.apps:~/Library/Caches/com.example.notes", "com.example.notes", 6_300_000, true, ""),
-			item(core.CatCaches, "caches.apps:~/Library/Caches/com.apple.familycircled", "familycircled", 1_000_000, true, core.SystemBusy+"familycircled 正在使用"),
+			item(core.CatCaches, "caches.apps:~/Library/Caches/com.apple.familycircled", "familycircled", 1_000_000, true, "系统占用：familycircled 正在使用"),
 		}},
 		{ID: core.CatBrowser, Title: "浏览器缓存", Items: []core.Item{
 			item(core.CatBrowser, "browser.chrome:~/Library/Caches/Google/Chrome", "Chrome 缓存", 1_900_000_000, true, "Google Chrome 正在运行"),

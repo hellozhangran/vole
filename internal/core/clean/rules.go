@@ -467,7 +467,7 @@ func wechatMedia(ctx context.Context, env *Env) ([]Candidate, error) {
 	root := env.expand("~/Library/Containers/com.tencent.xinWeChat/Data/Documents/xwechat_files")
 	var out []Candidate
 	thisMonth := env.Now().Format("2006-01")
-	add := func(glob, label string) {
+	add := func(glob, label string, images bool) {
 		ms, _ := filepath.Glob(filepath.Join(root, glob))
 		for _, m := range ms {
 			info, err := os.Lstat(m)
@@ -479,14 +479,14 @@ func wechatMedia(ctx context.Context, env *Env) ([]Candidate, error) {
 				continue
 			}
 			title := label + " " + filepath.Base(m)
-			if label == i18n.T("图片") {
+			if images {
 				title += i18n.T(" · 会话 ") + filepath.Base(filepath.Dir(m))[:min(6, len(filepath.Base(filepath.Dir(m))))]
 			}
 			out = append(out, Candidate{Path: m, Target: Whole, Title: title})
 		}
 	}
-	add("*/msg/video/*", i18n.T("视频"))
-	add("*/msg/attach/*/*", i18n.T("图片"))
+	add("*/msg/video/*", i18n.T("视频"), false)
+	add("*/msg/attach/*/*", i18n.T("图片"), true)
 	return out, ctx.Err()
 }
 

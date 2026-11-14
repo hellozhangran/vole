@@ -61,7 +61,7 @@ func (s *Source) Scan(ctx context.Context, req analyze.Request) (analyze.Report,
 		se := &analyze.ScanError{ExitCode: code, Stderr: stderr.String(), Err: err}
 		if code == -1 {
 			// 没能启动（不存在 / 不可执行 / 格式错误）或被信号杀掉（如签名校验失败）：扫描器本身坏了
-			se.Err = fmt.Errorf(i18n.T("%w：%w"), analyze.ErrScannerUnavailable, err)
+			se.Err = &analyze.UnavailableError{Cause: err}
 		}
 		return analyze.Report{}, se
 	}

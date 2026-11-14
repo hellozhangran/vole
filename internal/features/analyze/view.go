@@ -1,6 +1,7 @@
 package analyze
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -262,7 +263,10 @@ func (m *Module) diskLabel(c *ui.Context, t kit.Theme) {
 func (m *Module) body(c *ui.Context, t kit.Theme, v viewState) {
 	ui.Column(c.Key("body-" + m.current())).Grow(1).FillWidth().MinHeight(0).Children(func() {
 		if err := m.brokenErr(); err != nil {
-			detail := strings.TrimPrefix(strings.TrimPrefix(err.Error(), core.ErrScannerUnavailable.Error()), i18n.T("："))
+			detail := err.Error()
+			if ue := (*core.UnavailableError)(nil); errors.As(err, &ue) && ue.Cause != nil {
+				detail = ue.Cause.Error()
+			}
 			m.message(c, t, kit.ArtError, i18n.T("分析组件不可用"), strings.TrimSpace(detail)+i18n.T("。Vole.app 可能不完整或已损坏，请重新安装；开发期请检查 VOLE_ANALYZE_BIN。"), true)
 			return
 		}

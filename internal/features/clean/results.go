@@ -107,25 +107,19 @@ func (m *Module) skippedSummary() (text string, needFDA bool) {
 	var runSize int64
 	runN, fdaN, otherN := 0, 0, 0
 	for _, it := range m.items() {
-		switch {
-		case it.Blocked == "" || protectedReason(it.Blocked) || strings.HasPrefix(it.Blocked, core.SystemBusy):
+		switch it.Block {
+		case core.BlockNone, core.BlockProtected, core.BlockWhitelist, core.BlockSystem:
 			// 受保护的、系统进程占用的：用户关不掉，只在列表里置灰
-		case it.Blocked == fdaReason:
+		case core.BlockFDA:
 			fdaN++
+		case core.BlockRunning:
+			runN++
+			runSize += it.Size
+			if !slices.ContainsFunc(apps, func(a string) bool { return strings.EqualFold(a, it.BlockApp) }) { // Claude / claude 只写一次
+				apps = append(apps, it.BlockApp)
+			}
 		default:
-			name, ok := strings.CutSuffix(it.Blocked, i18n.T(" 正在运行"))
-			if !ok {
-				name, ok = holderName(it.Blocked)
-			}
-			if ok {
-				runN++
-				runSize += it.Size
-				if !slices.ContainsFunc(apps, func(a string) bool { return strings.EqualFold(a, name) }) { // Claude / claude 只写一次
-					apps = append(apps, name)
-				}
-			} else {
-				otherN++
-			}
+			otherN++
 		}
 	}
 	var parts []string
@@ -140,35 +134,6 @@ func (m *Module) skippedSummary() (text string, needFDA bool) {
 		parts = append(parts, fmt.Sprintf(i18n.T("另有 %d 项暂时不能清理（展开查看原因）"), otherN))
 	}
 	return strings.Join(parts, i18n.T("；")), fdaN > 0
-}
-
-// holderName：「被 uv run 占用：my-mcp-server（PID 1、2）；PID 3」→「uv run（my-mcp-server）」，放进页头的「关闭…」。
-func holderName(reason string) (string, bool) {
-	rest, ok := strings.CutPrefix(reason, i18n.T("被 "))
-	if !ok {
-		return "", false
-	}
-	kind, list, ok := strings.Cut(rest, i18n.T(" 占用："))
-	if !ok {
-		return "", false
-	}
-	var names []string
-	for _, g := range strings.Split(list, i18n.T("；")) {
-		if n, _, ok := strings.Cut(g, i18n.T("（PID")); ok {
-			names = append(names, n)
-		}
-	}
-	if len(names) == 0 {
-		return kind, true
-	}
-	return kind + i18n.T("（") + strings.Join(names, i18n.T("、")) + i18n.T("）"), true
-}
-
-// fdaReason 是缺完全磁盘访问时的原因（core/clean 写的）。
-var fdaReason = i18n.T("需要完全磁盘访问")
-
-func protectedReason(r string) bool {
-	return strings.HasPrefix(r, i18n.T("受保护")) || strings.HasPrefix(r, i18n.T("在白名单里"))
 }
 
 // categoryCard 一个类别：三态勾选框 + 图标 + 标题「已选 n/m」+ 说明 + 「已选大小 / 总大小」+ 展开。
@@ -341,12 +306,17 @@ func (m *Module) itemRow(c *ui.Context, t kit.Theme, it core.Item, title string)
 		switch {
 		case !ok:
 			label := it.Blocked
-			if protectedReason(label) || strings.HasPrefix(label, core.SystemBusy) {
-				label, _, _ = strings.Cut(label, i18n.T("：")) // 「受保护：……」只显示冒号前面，完整原因在提示里
+			switch it.Block {
+			case core.BlockProtected: // 简短标签，完整原因在提示里
+				label = i18n.T("受保护")
+			case core.BlockWhitelist:
+				label = i18n.T("在白名单里")
+			case core.BlockSystem:
+				label = i18n.T("系统占用")
 			}
 			// 其他原因（如「被 uv run 占用：my-mcp-server（PID …）」）整句显示，用户才知道该关哪个
 			tag(c, label, t.Muted).Tooltip(it.Blocked).MaxWidth(420).Ellipsis("…")
-			if it.Blocked == fdaReason {
+			if it.Block == core.BlockFDA {
 				m.settingsLink(c, "fda", i18n.T("去设置"))
 			}
 		case it.Uncertain || !it.Default:

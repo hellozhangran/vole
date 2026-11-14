@@ -67,6 +67,16 @@ var ErrPathNotFound = errors.New(i18n.T("路径不存在"))
 // 和「某个路径扫失败」不同，它对所有路径都会失败，UI 应整体提示。
 var ErrScannerUnavailable = errors.New(i18n.T("分析组件不可用"))
 
+// UnavailableError 是「扫描器不可用」和具体原因。errors.Is(err, ErrScannerUnavailable) 成立；
+// 界面要单独显示原因时用 errors.As 取 Cause，不去拆错误文字（文字会被翻译）。
+type UnavailableError struct{ Cause error }
+
+func (e *UnavailableError) Error() string {
+	return fmt.Errorf(i18n.T("%w：%w"), ErrScannerUnavailable, e.Cause).Error()
+}
+
+func (e *UnavailableError) Unwrap() []error { return []error{ErrScannerUnavailable, e.Cause} }
+
 // ScanError 表示扫描器本身失败（非零退出、输出无法解析等）。
 type ScanError struct {
 	ExitCode int    // -1 表示未拿到退出码

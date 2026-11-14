@@ -60,10 +60,10 @@ func (m *Module) procTable(c *ui.Context, t kit.Theme) {
 	ui.Column(c.Key("procs")).Grow(1).FillWidth().MinHeight(0).Radius(kit.RadiusL).Background(ui2.CardBG).Border(1, ui2.CardBorder).Clip().Children(func() {
 		ui.Row(c.Key("thead")).FillWidth().Height(32).Shrink(0).Padding(0, 16).Gap(8).
 			Border(1, ui2.CardBorder).BorderWidth(0, 0, 1, 0).Children(func() {
-			m.th(c, t, fmt.Sprintf(i18n.T("名称（%d）"), len(m.pt.list)), byName, 0, false)
-			m.th(c, t, "PID", byPID, colPID, true)
-			m.th(c, t, "CPU", byCPU, colCPU, true)
-			m.th(c, t, i18n.T("内存"), byMem, colMem, true)
+			m.th(c, t, fmt.Sprintf(i18n.T("名称（%d）"), len(m.pt.list)), i18n.T("名称"), byName, 0, false)
+			m.th(c, t, "PID", "PID", byPID, colPID, true)
+			m.th(c, t, "CPU", "CPU", byCPU, colCPU, true)
+			m.th(c, t, i18n.T("内存"), i18n.T("内存"), byMem, colMem, true)
 			ui.Box(c).Width(colMore).Shrink(0)
 		})
 		ui.Scroll(c.Key("tbody")).Grow(1).FillWidth().MinHeight(0).Children(func() {
@@ -84,9 +84,9 @@ func (m *Module) procTable(c *ui.Context, t kit.Theme) {
 	})
 }
 
-// th 是可点击排序的表头格；当前排序列显示方向箭头。width 为 0 表示占满剩余宽度。
-func (m *Module) th(c *ui.Context, t kit.Theme, label string, col sortCol, width float32, right bool) {
-	b := ui.ButtonBase(c.Key(fmt.Sprint("th-", col))).Label(i18n.Tf("按%s排序", strings.Split(label, i18n.T("（"))[0])).Height(32).Gap(4).TextColor(t.Faint)
+// th 是可点击排序的表头格；当前排序列显示方向箭头。name 是「按…排序」里的列名，width 为 0 表示占满剩余宽度。
+func (m *Module) th(c *ui.Context, t kit.Theme, label, name string, col sortCol, width float32, right bool) {
+	b := ui.ButtonBase(c.Key(fmt.Sprint("th-", col))).Label(i18n.Tf("按%s排序", name)).Height(32).Gap(4).TextColor(t.Faint)
 	if width > 0 {
 		b.Width(width).Shrink(0)
 	} else {

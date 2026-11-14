@@ -118,11 +118,12 @@ func uvSymlinkRisk(env *Env) string {
 // linkModeSymlink 匹配 uv.toml 里任何位置（顶层或 [pip] 下）的 link-mode = "symlink"。
 var linkModeSymlink = regexp.MustCompile(`(?m)^\s*link-mode\s*=\s*["']symlink["']`)
 
-// uvHolders 写出占着 uv 缓存的进程：「被 uv run 占用：my-mcp-server（PID 69222、69223 等 6 个）」。
+// uvHolders 写出占着 uv 缓存的进程：「被 uv run 占用：my-mcp-server（PID 69222、69223 等 6 个）」，
+// app 是页头「关闭 … 后可再清理」里的名字：「uv run（my-mcp-server）」。
 // 能从 --directory / --project 取出项目目录就写目录名，取不到写 PID。
-func uvHolders(procs []Proc) string {
+func uvHolders(procs []Proc) (text, app string) {
 	if len(procs) == 0 {
-		return ""
+		return "", ""
 	}
 	type group struct {
 		name string
@@ -152,7 +153,7 @@ func uvHolders(procs []Proc) string {
 			kind = k
 		}
 	}
-	var parts []string
+	var parts, names []string
 	for _, g := range groups {
 		pids := g.pids
 		var ps []string
@@ -167,9 +168,14 @@ func uvHolders(procs []Proc) string {
 			parts = append(parts, list)
 		} else {
 			parts = append(parts, g.name+i18n.T("（")+list+i18n.T("）"))
+			names = append(names, g.name)
 		}
 	}
-	return i18n.T("被 ") + kind + i18n.T(" 占用：") + strings.Join(parts, i18n.T("；"))
+	app = kind
+	if len(names) > 0 {
+		app = kind + i18n.T("（") + strings.Join(names, i18n.T("、")) + i18n.T("）")
+	}
+	return i18n.T("被 ") + kind + i18n.T(" 占用：") + strings.Join(parts, i18n.T("；")), app
 }
 
 // uvCommand 从 uv 的命令行里取出子命令（uv run / uvx / uv）和项目目录（--directory、--project）。

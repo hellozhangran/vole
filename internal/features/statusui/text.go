@@ -66,6 +66,20 @@ func HealthText(msg string) (level, issues string) {
 	return level, strings.Join(out, i18n.T("，"))
 }
 
+// HealthFirstIssue 是健康说明里的第一个问题（已翻译）；没有问题时为空。
+func HealthFirstIssue(msg string) string {
+	_, tail, _ := strings.Cut(msg, ":")
+	for _, it := range strings.Split(tail, ",") {
+		if it = strings.TrimSpace(it); it != "" {
+			if zh, ok := healthIssues[it]; ok {
+				return zh
+			}
+			return it
+		}
+	}
+	return ""
+}
+
 // TempTag 温度标签；拿不到就不显示，不写 0°C。
 func TempTag(v float64) string {
 	if v <= 0 {

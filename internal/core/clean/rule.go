@@ -81,9 +81,9 @@ type Rule struct {
 	Group     string   // 结果页里按它分组（如「Claude」「Codex」）；空 = 不分组
 	// GuardReason：守卫进程在运行时显示的原因（空 = 「<进程> 正在运行」）
 	GuardReason string
-	// GuardText：守卫进程在运行时，按这些进程（PID、命令行）写原因，如「被 uv run 占用：my-mcp-server（PID 123）」；
-	// 返回空时退回 GuardReason
-	GuardText func(procs []Proc) string
+	// GuardText：守卫进程在运行时，按这些进程（PID、命令行）写原因，如「被 uv run 占用：my-mcp-server（PID 123）」，
+	// app 是页头「关闭 … 后可再清理」里要写的名字（如「uv run（my-mcp-server）」）；返回空时退回 GuardReason
+	GuardText func(procs []Proc) (text, app string)
 	// Risk：扫描时检查的风险（如 uv 用了 symlink 模式）；返回非空时换掉说明，并且默认不勾
 	Risk func(env *Env) string
 	// PreDelete：删之前最后一道检查（如 lsof 看有没有程序开着这些文件），返回非空就跳过
@@ -104,14 +104,35 @@ type Rule struct {
 	Custom func(ctx context.Context, env *Env) ([]Candidate, error)
 }
 
+// BlockKind 是不能清理的原因类型。
+type BlockKind int
+
+const (
+	BlockNone      BlockKind = iota
+	BlockOther               // 其他：判断不了相关程序是否在运行、工具正在用缓存等
+	BlockRunning             // 有用户能关掉的程序在用：关掉 Item.BlockApp 后可再清理
+	BlockSystem              // 被系统进程占用：用户关不掉
+	BlockProtected           // 在保护名单里：永远不清理
+	BlockWhitelist           // 在白名单里：默认不清理
+	BlockFDA                 // 需要完全磁盘访问
+)
+
+// block 是一条不能清理的原因：给人看的文字 + 类型（+ 要关掉的程序）。
+type block struct {
+	reason string
+	kind   BlockKind
+	app    string
+}
+
 // Candidate 是规则选出的一项（还没算大小）。
 type Candidate struct {
 	Path    string
 	Target  Target
-	Command []string // 非空：交给工具命令清理，第一个元素是可执行文件绝对路径
-	Title   string   // 可选的显示名
-	Blocked string   // 非空：列出来但不能清理的原因（如受保护）
-	Group   string   // 可选：覆盖规则的 Group
+	Command []string  // 非空：交给工具命令清理，第一个元素是可执行文件绝对路径
+	Title   string    // 可选的显示名
+	Blocked string    // 非空：列出来但不能清理的原因（如受保护）
+	Block   BlockKind // Blocked 的类型
+	Group   string    // 可选：覆盖规则的 Group
 	// Confirm：要用户确认才清（默认不勾、标「需确认」），Note 写明原因
 	Confirm bool
 	Note    string
@@ -133,7 +154,11 @@ type Item struct {
 	Disposal Disposal
 	Command  []string
 	Note     string
-	Blocked  string // 非空：不能勾选的原因（app 正在运行、需要完全磁盘访问……）
+	Blocked  string // 非空：不能勾选的原因（app 正在运行、需要完全磁盘访问……），给人看的，已翻译
+	// Block 是 Blocked 的类型，BlockApp 是 BlockRunning 时要关掉的程序名。界面按它们归类，
+	// 不拿 Blocked 的文字做比较（文字会被翻译，前缀、后缀在别的语言里对不上）。
+	Block    BlockKind
+	BlockApp string
 	// SizeUnknown：读不了（比如没有完全磁盘访问），Size 不可信，界面显示「—」
 	SizeUnknown bool
 	// Uncertain：判断不了是否有 app 正在用它；列出来、默认不勾，用户确认后才清理

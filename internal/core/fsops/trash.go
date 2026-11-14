@@ -118,6 +118,9 @@ func ensureOwnedTrashDirectory(p string, create bool) error {
 	return nil
 }
 
+// ErrFinderTimeout 是等 Finder 超时。调用方用 errors.Is 判断，不比较错误文字（文字会被翻译）。
+var ErrFinderTimeout = errors.New(i18n.T("移到废纸篓超时"))
+
 // MoveToTrashViaFinder 是少见磁盘布局下的最后兜底（最多等 30 秒）。
 func MoveToTrashViaFinder(ctx context.Context, absPath string) error {
 	return MoveToTrashViaFinderWithin(ctx, absPath, 30*time.Second)
@@ -133,7 +136,7 @@ func MoveToTrashViaFinderWithin(ctx context.Context, absPath string, wait time.D
 		fmt.Sprintf(`tell application "Finder" to delete POSIX file "%s"`, escaped)).CombinedOutput()
 	if err != nil {
 		if ctx.Err() != nil {
-			return errors.New(i18n.T("移到废纸篓超时"))
+			return ErrFinderTimeout
 		}
 		return fmt.Errorf(i18n.T("移到废纸篓失败：%s"), strings.TrimSpace(string(out)))
 	}

@@ -194,6 +194,10 @@ func TestScanFindsMVPCategories(t *testing.T) {
 	if b := mustFind(t, res, "caches.apps:~/Library/Caches/gopls").Blocked; b != "gopls 正在运行" {
 		t.Fatalf("和运行中进程同名的缓存应被挡：%q", b)
 	}
+	// 原因类型是结构化的：界面按类型归类，不拆原因文字（文字会被翻译）
+	if it := mustFind(t, res, "browser.chrome:~/Library/Caches/Google/Chrome"); it.Block != BlockRunning || it.BlockApp != "Google Chrome" {
+		t.Fatalf("运行中：%v %q", it.Block, it.BlockApp)
+	}
 	// 对不上运行中进程的：和 Mole 一样当作没在运行，默认勾
 	for _, id := range []string{"caches.apps:~/Library/Caches/plaindir", "caches.apps:~/Library/Caches/WPS_Office_7.3(8966)_arm64.7z",
 		"caches.appsupport:~/Library/Application Support/Foo/Code Cache"} {
@@ -209,8 +213,11 @@ func TestScanFindsMVPCategories(t *testing.T) {
 	if b := mustFind(t, res, "caches.apps:~/Library/Caches/com.1password.1password").Blocked; !strings.HasPrefix(b, "受保护") {
 		t.Fatalf("保护名单：%q", b)
 	}
-	if b := mustFind(t, res, "caches.apps:~/Library/Caches/ms-playwright").Blocked; b == "" {
-		t.Fatal("ms-playwright 在保护名单 / 白名单里，应置灰")
+	if k := mustFind(t, res, "caches.apps:~/Library/Caches/com.1password.1password").Block; k != BlockProtected {
+		t.Fatalf("保护名单的类型：%v", k)
+	}
+	if it := mustFind(t, res, "caches.apps:~/Library/Caches/ms-playwright"); it.Blocked == "" || (it.Block != BlockProtected && it.Block != BlockWhitelist) {
+		t.Fatalf("ms-playwright 在保护名单 / 白名单里，应置灰：%q %v", it.Blocked, it.Block)
 	}
 	// 其他类别
 	mustFind(t, res, "system.caches:~/Library/Caches/GeoServices")
@@ -914,15 +921,19 @@ func TestUvHoldersAndSymlinkRisk(t *testing.T) {
 	if want := "被 uv run 占用：my-mcp-server（PID 69222、69223、85185 等 4 个）"; it.Blocked != want {
 		t.Fatalf("%q", it.Blocked)
 	}
+	// 页头按结构化的类型和程序名归类，不拆原因文字
+	if it.Block != BlockRunning || it.BlockApp != "uv run（my-mcp-server）" {
+		t.Fatalf("%v %q", it.Block, it.BlockApp)
+	}
 	// 取不到目录就写 PID；目录里有空格也能取出来
-	if got := uvHolders([]Proc{{PID: 7, Args: "uv run main.py"}}); got != "被 uv run 占用：PID 7" {
-		t.Fatalf("%q", got)
+	if got, app := uvHolders([]Proc{{PID: 7, Args: "uv run main.py"}}); got != "被 uv run 占用：PID 7" || app != "uv run" {
+		t.Fatalf("%q %q", got, app)
 	}
 	if _, dir := uvCommand("uv --project /a/My Proj run x.py"); dir != "/a/My Proj" {
 		t.Fatalf("%q", dir)
 	}
-	if got := uvHolders([]Proc{{PID: 8, Args: "/opt/homebrew/bin/uvx ruff"}}); got != "被 uvx 占用：PID 8" {
-		t.Fatalf("%q", got)
+	if got, app := uvHolders([]Proc{{PID: 8, Args: "/opt/homebrew/bin/uvx ruff"}}); got != "被 uvx 占用：PID 8" || app != "uvx" {
+		t.Fatalf("%q %q", got, app)
 	}
 	f.procs.Names["uv"], f.procs.Procs = false, nil
 

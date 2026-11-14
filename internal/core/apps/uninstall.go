@@ -350,9 +350,10 @@ func finderError(err error) error {
 	switch {
 	case strings.Contains(msg, "-1743") || strings.Contains(msg, "Not authorized"):
 		return errors.New(i18n.T("Vole 没有控制 Finder 的权限：到「系统设置 › 隐私与安全性 › 自动化」里允许 Vole 控制「访达」后再试"))
-	case strings.Contains(msg, "-128") || strings.Contains(msg, "User canceled") || strings.Contains(msg, i18n.T("用户已取消")):
+	// -1743、-128 是 AppleScript 的错误号（osascript 的输出里总带着），和系统语言、Vole 的界面语言都无关
+	case strings.Contains(msg, "-128") || strings.Contains(msg, "User canceled"):
 		return errors.New(i18n.T("已取消（没有输入管理员密码）"))
-	case strings.Contains(msg, i18n.T("超时")):
+	case errors.Is(err, fsops.ErrFinderTimeout):
 		return errors.New(i18n.T("等 Finder 超时了（可能在等管理员密码）"))
 	}
 	return err

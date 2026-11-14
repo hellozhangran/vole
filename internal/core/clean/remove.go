@@ -139,13 +139,13 @@ func runOne(ctx context.Context, env *Env, it Item, dry bool, eligible map[strin
 
 	// 4. 进程（每项都重新取快照）
 	snap, snapErr := env.Processes(ctx)
-	if r := guardReason(rule, c, snap, snapErr); r != "" {
-		return skip(r)
+	if b := guardReason(rule, c, snap, snapErr); b.reason != "" {
+		return skip(b.reason)
 	}
 	if rule.BundleGuard {
-		reason, uncertain := ownerReason(ownerName(rule, it.Path), snap, snapErr)
-		if reason != "" {
-			return skip(reason)
+		b, uncertain := ownerReason(ownerName(rule, it.Path), snap, snapErr)
+		if b.reason != "" {
+			return skip(b.reason)
 		}
 		// 判断不了的项：只有扫描时就标了「需确认」、用户仍然勾了才清；扫描后才变得判断不了的跳过
 		if uncertain && !it.Uncertain {

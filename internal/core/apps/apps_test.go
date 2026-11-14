@@ -14,6 +14,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"vole/internal/core/fsops"
 )
 
 // fake 是测试环境：家目录、应用程序目录、Caskroom 都在临时目录里；plutil 用真的（只读临时目录里的文件），
@@ -533,12 +535,13 @@ func TestRunRechecksAndAdmin(t *testing.T) {
 }
 
 func TestFinderErrors(t *testing.T) {
-	for in, want := range map[string]string{
-		"移到废纸篓失败：execution error: Not authorized to send Apple events to Finder. (-1743)": "自动化",
-		"移到废纸篓失败：execution error: User canceled. (-128)":                                  "已取消",
-		"移到废纸篓超时": "超时",
+	for in, want := range map[error]string{
+		errors.New("移到废纸篓失败：execution error: Not authorized to send Apple events to Finder. (-1743)"): "自动化",
+		errors.New("移到废纸篓失败：execution error: User canceled. (-128)"):                                  "已取消",
+		fsops.ErrFinderTimeout:                        "超时",
+		fmt.Errorf("包了一层：%w", fsops.ErrFinderTimeout): "超时", // 按错误类型判断，不比较文字
 	} {
-		if got := finderError(errors.New(in)).Error(); !strings.Contains(got, want) {
+		if got := finderError(in).Error(); !strings.Contains(got, want) {
 			t.Fatalf("%s → %s", in, got)
 		}
 	}
