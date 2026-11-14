@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="https://awesomemygo.dev/apps/vole"><img src="https://awesomemygo.dev/badge.svg" alt="Listed on Awesome MyGo"></a>
+</p>
+
+<p align="center">
   <a href="README.md">English</a> · 简体中文
 </p>
 
