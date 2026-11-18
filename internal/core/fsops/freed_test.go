@@ -31,6 +31,9 @@ func TestReadFreed(t *testing.T) {
 		"2026-11-10T06:00:43+08:00\t20261110-060041\tuninstall\t失败\t7\tcom.b\t/d\tPermission denied\n" +
 		"2026-11-10T06:00:43+08:00\t20261110-060041\tuninstall\t已移到废纸篓\t20\tcom.b\t/Applications/B.app\t1 项关联文件没有移走\n" +
 		"2026-11-10T06:00:43+08:00\t20261110-060041\tuninstall\t结束\t0\t\t\t\n" +
+		// v0.2.1 起的格式：汇总行状态是「完成」，不算；逐项照算
+		"2026-11-18T09:00:00+08:00\t20261118-090000\tuninstall\t已移到废纸篓\t30\tcom.c\t/Applications/C.app\tapp 本体\n" +
+		"2026-11-18T09:00:00+08:00\t20261118-090000\tuninstall\t完成\t30\tcom.c\t/Applications/C.app\t汇总：共 1 项\n" +
 		// 卸载的 dry-run 不算
 		"2026-11-10T07:00:00+08:00\t20261110-070000\tuninstall-dry-run\t将卸载\t99\tcom.c\t/Applications/C.app\t\n" +
 		"坏行\n"
@@ -40,7 +43,7 @@ func TestReadFreed(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "operations.log"), []byte(cur), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	want := Freed{Bytes: (1000 + 300 + 50 + 5 + 20) * 1024, Times: 3}
+	want := Freed{Bytes: (1000 + 300 + 50 + 5 + 20 + 30) * 1024, Times: 4}
 	if got := ReadFreed(dir); got != want {
 		t.Fatalf("got %+v want %+v", got, want)
 	}

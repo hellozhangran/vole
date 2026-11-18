@@ -476,8 +476,33 @@ func TestRunMovesToTrashAndQuits(t *testing.T) {
 	if !strings.Contains(ran, "bootout") || !strings.Contains(ran, "lsregister -u") {
 		t.Fatalf("应卸载 LaunchAgent、注销 LaunchServices：%s", ran)
 	}
-	if b, _ := os.ReadFile(filepath.Join(f.LogDir, "operations.log")); !strings.Contains(string(b), "uninstall\t已移到废纸篓") {
+	b, _ := os.ReadFile(filepath.Join(f.LogDir, "operations.log"))
+	if !strings.Contains(string(b), "uninstall\t已移到废纸篓") {
 		t.Fatalf("操作日志：%s", b)
+	}
+	// app 本体只记一次「已移到废纸篓」；结尾的汇总行用「完成」，原因写共几项
+	var body, summary int
+	for _, line := range strings.Split(string(b), "\n") {
+		fs := strings.Split(line, "\t")
+		if len(fs) < 8 || fs[2] != "uninstall" || fs[6] != app {
+			continue
+		}
+		switch fs[3] {
+		case "已移到废纸篓":
+			body++
+		case "完成":
+			summary++
+			if fs[7] != fmt.Sprintf("汇总：共 %d 项", o.Moved) {
+				t.Fatalf("汇总行的原因：%q", fs[7])
+			}
+		}
+	}
+	if body != 1 || summary != 1 {
+		t.Fatalf("本体应记 1 次、汇总 1 次：%d %d\n%s", body, summary, b)
+	}
+	// 累计释放量按逐项算，不把汇总行再算一次
+	if got, want := fsops.ReadFreed(f.LogDir), o.Size/1024*1024; got.Bytes > want || got.Times != 1 {
+		t.Fatalf("累计释放量：%+v，这次移走 %d", got, o.Size)
 	}
 }
 

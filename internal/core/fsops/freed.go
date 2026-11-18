@@ -17,7 +17,8 @@ type Freed struct {
 }
 
 // uninstallItems 是卸载逐项日志的原因列（core/apps/uninstall.go 的「app 本体」和 Kind.String()）。
-// 卸载每个 app 结束时还会再记一行汇总（原因为空或「N 项关联文件没有移走」），按原因区分开，避免重复计算。
+// 卸载每个 app 结束时还会再记一行汇总：v0.2.1 起状态是「完成」；更早的日志里状态也是「已移到废纸篓」、
+// 原因为空或「N 项关联文件没有移走」。两种都按原因列排除，不会重复计算，旧日志照样能读。
 var uninstallItems = map[string]bool{"app 本体": true, "缓存和日志": true, "个人数据": true}
 
 // ReadFreed 读 dir 下的 operations.log（连同轮转出的 operations.log.1）。读不到就是零值。

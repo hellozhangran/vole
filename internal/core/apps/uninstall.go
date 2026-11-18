@@ -91,11 +91,22 @@ func Run(ctx context.Context, env *Env, plans []Plan, opts RunOptions) *Report {
 	return rep
 }
 
+// logSummary 是操作日志里「这个 app 卸完了」那一行的状态（大小是这个 app 一共移走的；逐项另有「已移到废纸篓」行）。
+// fsops.ReadFreed 只按逐项的行累计释放量，不读这一行。
+const logSummary = "完成"
+
 func runOne(ctx context.Context, env *Env, p Plan, opts RunOptions, log *fsops.OpLog, action string) (o Outcome) {
 	app := p.App
 	o = Outcome{App: app}
 	defer func() {
-		log.Line(env.Now(), action, string(o.Status), o.Size/1024, app.BundleID, app.Path, o.Reason)
+		// 每个 app 结束时记一行汇总。卸成功的逐项已经记过「已移到废纸篓」，汇总要换一个状态：
+		// 以前也写「已移到废纸篓」、原因为空，看着像本体重复记了一次（2026-11-10 批次 20261110-060041）。
+		status, reason := string(o.Status), o.Reason
+		if o.Status == StatusDone {
+			status = logSummary
+			reason = strings.TrimSuffix(fmt.Sprintf("汇总：共 %d 项；%s", o.Moved, o.Reason), "；")
+		}
+		log.Line(env.Now(), action, status, o.Size/1024, app.BundleID, app.Path, reason)
 	}()
 	skip := func(r string) Outcome { o.Status, o.Reason = StatusSkipped, r; return o }
 
