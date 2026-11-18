@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -80,6 +81,14 @@ esac
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// 预热：macOS 第一次执行一个新写出来的可执行文件前要做安全检查，本机实测 150–300ms
+	// （同一文件第二次只要约 3ms），机器忙时（go test ./... 全量并发）能拖到 2 秒以上。
+	// 先空跑一次，把这段等待放在测试计时之外。（FAKE_MODE 不认识时脚本什么都不做。）
+	warm := exec.Command(bin)
+	warm.Env = append(os.Environ(), "FAKE_MODE=warm")
+	if out, err := warm.CombinedOutput(); err != nil {
+		t.Fatalf("预热假 analyze：%v %s", err, out)
+	}
 	return bin, dir
 }
 
@@ -153,10 +162,16 @@ func TestScanCancelKillsChildren(t *testing.T) {
 		errc <- err
 	}()
 
-	// 等假 analyze 把子进程拉起来再取消，避免机器负载高时测不到子进程
+	// 等假 analyze 把子进程拉起来再取消。假二进制已经预热过（见 fakeBinary），这里只等脚本本身；
+	// Scan 提前返回时直接报它的错误，不再笼统地说「没拿到 pid」。
 	childFile := filepath.Join(dir, "child")
 	var pid int
 	for i := 0; i < 100 && pid <= 0; i++ {
+		select {
+		case err := <-errc:
+			t.Fatalf("还没拉起子进程 Scan 就返回了：%v", err)
+		default:
+		}
 		data, _ := os.ReadFile(childFile)
 		pid, _ = strconv.Atoi(strings.TrimSpace(string(data)))
 		time.Sleep(20 * time.Millisecond)

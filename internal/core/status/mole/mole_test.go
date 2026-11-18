@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -111,6 +112,13 @@ esac
 	bin = filepath.Join(dir, "status")
 	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
 		t.Fatal(err)
+	}
+	// 预热：macOS 第一次执行新写出来的可执行文件前要做安全检查，机器忙时能拖到 2 秒以上
+	// （根因记录见 core/analyze/mole 的 fakeBinary）。先空跑一次，不占用下面各处的等待时间。
+	warm := exec.Command(bin)
+	warm.Env = append(os.Environ(), "FAKE_MODE=warm")
+	if out, err := warm.CombinedOutput(); err != nil {
+		t.Fatalf("预热假 status：%v %s", err, out)
 	}
 	return bin, dir
 }
