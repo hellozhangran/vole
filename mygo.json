@@ -10,5 +10,8 @@
     "THIRD_PARTY_NOTICES.md",
     "licenses",
     "LICENSE"
-  ]
+  ],
+  "macos": {
+    "icon": "icon/Assets.car"
+  }
 }
