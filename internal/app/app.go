@@ -43,6 +43,8 @@ func Run() error {
 		src = missing{err} // 找不到 analyze 时每次扫描都报这条错，界面上显示出来
 	}
 	env := sysenv.Probe()
+	logDir := filepath.Join(env.Home, "Library", "Logs", "Vole") // 清理和卸载共用的操作日志目录
+	go killOrphans(logDir)
 	// 状态 tab 和菜单栏面板共用一个 status 采集进程：谁先打开谁启动，都关了才停
 	stat := corestatus.NewShared(statusSource())
 
@@ -59,7 +61,6 @@ func Run() error {
 	if v := os.Getenv("VOLE_START_TAB"); v != "" {
 		start = v
 	}
-	logDir := filepath.Join(env.Home, "Library", "Logs", "Vole") // 清理和卸载共用的操作日志目录
 	bar := &shell.MenuBar{Icon: menubar.TrayIcon, Width: menubar.Width,
 		Panel: func(ctl shell.Controller) shell.Panel {
 			return menubar.New(menubar.Options{Source: stat, Host: ctl, Login: loginItem(),
@@ -88,6 +89,30 @@ func loginItem() menubar.Login {
 		return menubar.Login{Disabled: i18n.T("开发版不是 .app，系统不让注册登录项；打包后可用")}
 	}
 	return menubar.Login{Enabled: mygo.App.OpenAtLogin, Set: mygo.App.SetOpenAtLogin}
+}
+
+// killOrphans 结束上次 Vole 被 kill -9、崩溃后留下的 analyze / status（规则见 procs.KillOrphans），结束了哪些记进操作日志。
+// 在后台跑，不拖慢启动；只认这次 Vole 自己会用的那两个可执行文件。
+func killOrphans(logDir string) {
+	var paths []string
+	for _, b := range []struct{ name, env string }{{binloc.AnalyzeName, binloc.AnalyzeEnv}, {binloc.StatusName, binloc.StatusEnv}} {
+		if p, err := binloc.Locate(b.name, b.env); err == nil {
+			paths = append(paths, p)
+		}
+	}
+	if len(paths) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	found, err := procs.KillOrphans(ctx, paths)
+	if err != nil || len(found) == 0 {
+		return
+	}
+	log := fsops.NewOpLog(logDir, time.Now())
+	for _, o := range found {
+		log.Line(time.Now(), "orphan", "已结束", 0, fmt.Sprintf("PID %d", o.PID), o.Path, "上次 Vole 异常退出后留下的子进程")
+	}
 }
 
 // statusSource 定位打包的 status 二进制；找不到时每次 Watch 都报「状态组件不可用」，界面上显示出来。
