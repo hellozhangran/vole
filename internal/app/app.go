@@ -32,7 +32,7 @@ import (
 )
 
 // Version 是 Vole 自己的版本号（显示在右上角）。
-const Version = "0.2.0"
+const Version = "0.2.1"
 
 // Run 启动 Vole，阻塞到退出。
 func Run() error {
