@@ -8,6 +8,11 @@ name: Compile app icon
 
 on:
   workflow_dispatch:
+    inputs:
+      icon_json:
+        description: 可选：临时替换 icon/AppIcon.icon/icon.json 的内容（试参数用，不改仓库）
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -23,6 +28,14 @@ jobs:
           xcodebuild -version
           xcrun actool --version
 
+      - name: Override icon.json (optional)
+        if: ${{ inputs.icon_json != '' }}
+        env:
+          ICON_JSON: ${{ inputs.icon_json }}
+        run: |
+          printf '%s' "$ICON_JSON" > icon/AppIcon.icon/icon.json
+          cat icon/AppIcon.icon/icon.json
+
       - name: Compile icon/AppIcon.icon
         run: |
           mkdir -p out
@@ -33,6 +46,9 @@ jobs:
           test -s out/Assets.car
           test -s out/AppIcon.icns
           ls -la out
+          cp icon/AppIcon.icon/icon.json out/icon.json
+          # 列出 Assets.car 里的图标渲染（各尺寸、外观），判断旧系统会用到哪些
+          xcrun assetutil --info out/Assets.car > out/assets-info.json || true
 
       - name: Preview PNGs
         run: |
