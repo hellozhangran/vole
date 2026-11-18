@@ -1,0 +1,47 @@
+# 编译 macOS 26（Tahoe）用的图标：把 icon/AppIcon.icon（Icon Composer 格式）用 Xcode 26 的 actool
+# 编成 Assets.car 和 AppIcon.icns，作为构建产物上传。只能在 Actions 页面手动触发，不改仓库内容。
+#
+# 为什么要在这里编：macOS 26 会把只有 .icns 的旧图标放进浅灰底板（issue #1），要 Assets.car 里的
+# 新格式图标才能满版显示；编 .icon 需要 Xcode 26，本地开发机是 macOS 14 + Xcode 16 编不了。
+# 下载产物后把 Assets.car 提交到 icon/，mygo.json 的 macos.icon 指向它（见 mygo docs/distribution.md）。
+name: Compile app icon
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actool:
+    runs-on: macos-26 # 标准 arm64 机型，自带 Xcode 26；公开仓库免费
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode
+        run: |
+          xcodebuild -version
+          xcrun actool --version
+
+      - name: Compile icon/AppIcon.icon
+        run: |
+          mkdir -p out
+          # 参数和 mygo build 自己编 .icon 时一致（cmd/mygo/bundle.go 的 compileIcon；最低系统版本是 mygo 的默认 12.0）
+          xcrun actool icon/AppIcon.icon --compile out --output-format human-readable-text \
+            --platform macosx --target-device mac --minimum-deployment-target 12.0 \
+            --app-icon AppIcon --output-partial-info-plist out/partial.plist
+          test -s out/Assets.car
+          test -s out/AppIcon.icns
+          ls -la out
+
+      - name: Preview PNGs
+        run: |
+          # 从 .icns 拆出各尺寸 PNG，下载后可以直接看渲染效果
+          iconutil -c iconset out/AppIcon.icns -o out/AppIcon.iconset
+          ls out/AppIcon.iconset
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AppIcon
+          path: out/
+          if-no-files-found: error
